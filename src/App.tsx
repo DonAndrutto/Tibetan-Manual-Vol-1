@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Book, 
@@ -178,10 +178,49 @@ export default function App() {
   const [visitedSections, setVisitedSections] = useState<Set<Section>>(new Set(['consonants']));
   const [revealAllReading, setRevealAllReading] = useState(false);
   const [chaptersCollapsed, setChaptersCollapsed] = useState(false);
+  const mainRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     document.body.style.overflow = isSidebarOpen ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
+  }, [isSidebarOpen]);
+
+  // Edge swipe from left to open sidebar (mobile only)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    let startX = 0;
+    let startY = 0;
+    let tracking = false;
+    const EDGE = 24;
+    const THRESHOLD = 60;
+    const onStart = (e: TouchEvent) => {
+      if (window.innerWidth >= 768 || isSidebarOpen) return;
+      const t = e.touches[0];
+      if (t.clientX <= EDGE) {
+        startX = t.clientX;
+        startY = t.clientY;
+        tracking = true;
+      }
+    };
+    const onMove = (e: TouchEvent) => {
+      if (!tracking) return;
+      const t = e.touches[0];
+      const dx = t.clientX - startX;
+      const dy = Math.abs(t.clientY - startY);
+      if (dx > THRESHOLD && dy < 80) {
+        setIsSidebarOpen(true);
+        tracking = false;
+      }
+    };
+    const onEnd = () => { tracking = false; };
+    document.addEventListener('touchstart', onStart, { passive: true });
+    document.addEventListener('touchmove', onMove, { passive: true });
+    document.addEventListener('touchend', onEnd, { passive: true });
+    return () => {
+      document.removeEventListener('touchstart', onStart);
+      document.removeEventListener('touchmove', onMove);
+      document.removeEventListener('touchend', onEnd);
+    };
   }, [isSidebarOpen]);
 
   const navigateTo = (section: Section) => {
@@ -204,6 +243,39 @@ export default function App() {
 
   const composedSyllable = builderBase.tib.replace('་', '') + (builderVowel?.symbol || '');
 
+  const HScrollArea = ({ children, className = '', fadeFromClass = 'from-[#fdfcfb]', innerClassName = '' }: { children: React.ReactNode, className?: string, fadeFromClass?: string, innerClassName?: string }) => {
+    const ref = useRef<HTMLDivElement>(null);
+    const [overflow, setOverflow] = useState<'none' | 'right' | 'left' | 'both'>('none');
+    useEffect(() => {
+      const el = ref.current;
+      if (!el) return;
+      const check = () => {
+        const maxScroll = el.scrollWidth - el.clientWidth;
+        if (maxScroll <= 2) { setOverflow('none'); return; }
+        const atStart = el.scrollLeft <= 2;
+        const atEnd = el.scrollLeft >= maxScroll - 2;
+        setOverflow(atStart ? 'right' : atEnd ? 'left' : 'both');
+      };
+      check();
+      el.addEventListener('scroll', check, { passive: true });
+      const ro = new ResizeObserver(check);
+      ro.observe(el);
+      return () => { el.removeEventListener('scroll', check); ro.disconnect(); };
+    }, [children]);
+    const showRight = overflow === 'right' || overflow === 'both';
+    const showLeft = overflow === 'left' || overflow === 'both';
+    return (
+      <div className={`relative ${className}`}>
+        <div ref={ref} className={`overflow-x-auto ${innerClassName}`}>{children}</div>
+        <div className={`pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l ${fadeFromClass} to-transparent transition-opacity ${showRight ? 'opacity-90' : 'opacity-0'}`} />
+        <div className={`pointer-events-none absolute inset-y-0 left-0 w-10 bg-gradient-to-r ${fadeFromClass} to-transparent transition-opacity ${showLeft ? 'opacity-90' : 'opacity-0'}`} />
+        <div className={`pointer-events-none absolute top-1/2 right-1 -translate-y-1/2 transition-opacity ${showRight ? 'opacity-100' : 'opacity-0'}`}>
+          <ChevronRight className="w-4 h-4 text-brand-primary/60" />
+        </div>
+      </div>
+    );
+  };
+
   const SectionWrapper = ({ children, title, description }: { children: React.ReactNode, title: string, description?: string }) => {
     const currentIdx = navItems.findIndex(i => i.id === activeSection);
     const nextItem = currentIdx >= 0 ? navItems[currentIdx + 1] : undefined;
@@ -211,7 +283,10 @@ export default function App() {
       if (!nextItem) return;
       if (nextItem.chapter !== activeChapter) setActiveChapter(nextItem.chapter);
       navigateTo(nextItem.id);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      requestAnimationFrame(() => {
+        mainRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
     };
     const hint = CHAPTER_HINTS[activeChapter];
     return (
@@ -571,7 +646,7 @@ export default function App() {
             initial={{ x: -300 }}
             animate={{ x: 0 }}
             exit={{ x: -300 }}
-            className={`fixed inset-0 z-50 flex w-72 flex-col bg-white border-r border-orange-50 shadow-xl md:relative md:shadow-none ${!isSidebarOpen && 'hidden md:flex'}`}
+            className={`fixed inset-0 z-50 w-72 overflow-y-auto bg-white border-r border-orange-50 shadow-xl md:relative md:shadow-none md:h-screen ${!isSidebarOpen && 'hidden md:block'}`}
           >
             <div className="p-6 flex items-center justify-between md:mb-4">
               <div className="flex items-center gap-3">
@@ -653,7 +728,7 @@ export default function App() {
               </div>
             </div>
 
-            <nav className="flex-1 min-h-0 px-4 py-2 space-y-1 overflow-y-auto">
+            <nav className="px-4 py-2 pb-8 space-y-1">
               {filteredNavItems.map((item) => {
                 const isVisited = visitedSections.has(item.id);
                 const isActive = activeSection === item.id;
@@ -684,7 +759,7 @@ export default function App() {
       </AnimatePresence>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto" onClick={() => { if(isSidebarOpen) setIsSidebarOpen(false); }}>
+      <main ref={mainRef} className="flex-1 overflow-y-auto" onClick={() => { if(isSidebarOpen) setIsSidebarOpen(false); }}>
         <AnimatePresence mode="wait">
           {activeSection === 'consonants' && (
             <SectionWrapper 
@@ -1204,7 +1279,7 @@ export default function App() {
             <SectionWrapper title="Pronouns & Plurality" description="Learn to address yourself and others across three levels of formality.">
               <div className="space-y-12">
                 <div className="bg-white rounded-[3rem] border border-orange-50 shadow-sm overflow-hidden">
-                  <div className="overflow-x-auto">
+                  <HScrollArea fadeFromClass="from-white">
                     <table className="w-full text-left">
                       <thead>
                         <tr className="bg-brand-dark text-white uppercase text-[10px] font-black tracking-widest">
@@ -1241,7 +1316,7 @@ export default function App() {
                         ))}
                       </tbody>
                     </table>
-                  </div>
+                  </HScrollArea>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -1622,7 +1697,7 @@ export default function App() {
                 <div className="bg-brand-dark rounded-3xl p-8 border border-brand-primary/20 text-white shadow-xl overflow-hidden relative">
                    <div className="absolute top-0 right-0 w-64 h-64 bg-brand-primary/5 -mr-16 -mt-16 rounded-full blur-3xl pointer-events-none" />
                    <h3 className="text-xl font-bold mb-6 text-white/90">Auxiliary Summary Table</h3>
-                   <div className="overflow-x-auto pb-4">
+                   <HScrollArea fadeFromClass="from-brand-dark" innerClassName="pb-4">
                      <table className="w-full min-w-[600px] text-left">
                        <thead>
                          <tr>
@@ -1643,7 +1718,7 @@ export default function App() {
                          ))}
                        </tbody>
                      </table>
-                   </div>
+                   </HScrollArea>
                 </div>
 
               </div>
@@ -1797,7 +1872,7 @@ export default function App() {
                     </div>
                   </div>
 
-                  <div className="overflow-x-auto mb-8">
+                  <HScrollArea className="mb-8" fadeFromClass="from-white">
                     <table className="w-full text-left min-w-[600px]">
                       <thead>
                         <tr>
@@ -1818,7 +1893,7 @@ export default function App() {
                         ))}
                       </tbody>
                     </table>
-                  </div>
+                  </HScrollArea>
 
                   <h4 className="text-xs font-black uppercase tracking-widest text-brand-dark/30 mb-4">Sentence Examples</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -2003,7 +2078,7 @@ export default function App() {
               <div className="space-y-12">
                 <div className="bg-white p-8 rounded-[3rem] border border-orange-50 shadow-sm">
                   <h3 className="text-xl font-bold mb-6 text-brand-dark">Voluntary Verbs (Hon vs Non-Hon)</h3>
-                  <div className="overflow-x-auto">
+                  <HScrollArea fadeFromClass="from-white">
                     <table className="w-full text-left">
                       <thead>
                         <tr className="bg-brand-dark text-white uppercase text-[10px] font-black tracking-widest">
@@ -2026,7 +2101,7 @@ export default function App() {
                         ))}
                       </tbody>
                     </table>
-                  </div>
+                  </HScrollArea>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -2258,7 +2333,7 @@ export default function App() {
               <div className="space-y-12">
                  <div className="bg-white p-8 rounded-[3rem] border border-orange-50 shadow-sm">
                     <h3 className="text-xl font-bold mb-6 text-brand-dark">Tense & Evidentiality Formulas</h3>
-                    <div className="overflow-x-auto">
+                    <HScrollArea fadeFromClass="from-white">
                       <table className="w-full text-left">
                         <thead>
                           <tr className="bg-brand-dark text-white uppercase text-[10px] font-black tracking-widest">
@@ -2275,7 +2350,7 @@ export default function App() {
                           ))}
                         </tbody>
                       </table>
-                    </div>
+                    </HScrollArea>
                  </div>
 
                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
@@ -2495,7 +2570,7 @@ export default function App() {
               <div className="space-y-12">
                 <div className="bg-white p-8 rounded-[3rem] border border-orange-50 shadow-sm">
                   <h3 className="text-xl font-bold mb-6 text-brand-dark">Involuntary Verbs Table</h3>
-                  <div className="overflow-x-auto">
+                  <HScrollArea fadeFromClass="from-white">
                     <table className="w-full text-left">
                       <thead>
                         <tr className="bg-brand-dark text-white uppercase text-[10px] font-black tracking-widest">
@@ -2516,7 +2591,7 @@ export default function App() {
                         ))}
                       </tbody>
                     </table>
-                  </div>
+                  </HScrollArea>
                 </div>
 
                 <div className="bg-brand-muted/10 p-8 rounded-[3rem] border border-brand-primary/10">
