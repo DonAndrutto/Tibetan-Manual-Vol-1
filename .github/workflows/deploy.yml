@@ -1,23 +1,26 @@
-name: Build & Deploy
+name: Build & Deploy to GitHub Pages
 
 on:
   push:
     branches: [main]
     paths-ignore:
-      - 'docs/**'
       - '.github/workflows/**'
+  workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -28,9 +31,16 @@ jobs:
 
       - run: npm run build
 
-      - name: Commit and push rebuilt docs/index.html
-        run: |
-          git config user.email "actions@github.com"
-          git config user.name "GitHub Actions"
-          git add docs/index.html
-          git diff --staged --quiet || (git commit -m "chore: rebuild single-file HTML [skip ci]" && git push)
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/deploy-pages@v4
+        id: deployment
