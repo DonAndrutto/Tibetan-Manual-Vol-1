@@ -596,7 +596,7 @@ export default function App() {
               </div>
             </div>
 
-            <nav className="flex-1 px-4 py-2 space-y-1 overflow-y-auto">
+            <nav className="flex-1 min-h-0 px-4 py-2 space-y-1 overflow-y-auto">
               {filteredNavItems.map((item) => {
                 const isVisited = visitedSections.has(item.id);
                 const isActive = activeSection === item.id;
