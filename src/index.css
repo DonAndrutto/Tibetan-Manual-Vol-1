@@ -35,3 +35,62 @@ body {
 .word-hover:hover {
   @apply bg-brand-primary text-white scale-110 shadow-lg;
 }
+
+body {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4'%3E%3Crect width='4' height='4' fill='%23f5f5f0'/%3E%3Ccircle cx='1' cy='1' r='0.4' fill='%23d4af3710'/%3E%3C/svg%3E");
+}
+
+.glow-card-warm {
+  transition: box-shadow 0.3s ease, transform 0.3s ease;
+}
+.glow-card-warm:hover {
+  box-shadow: 0 8px 32px rgba(139, 69, 19, 0.18), 0 2px 8px rgba(139, 69, 19, 0.08);
+}
+
+.glow-card-cool {
+  transition: box-shadow 0.3s ease, transform 0.3s ease;
+}
+.glow-card-cool:hover {
+  box-shadow: 0 8px 32px rgba(79, 70, 229, 0.18), 0 2px 8px rgba(79, 70, 229, 0.08);
+}
+
+@keyframes shimmer-sweep {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+.shimmer-gold {
+  background: linear-gradient(90deg, #d4af37 0%, #ffe066 40%, #d4af37 60%, #b8860b 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer-sweep 3s linear infinite;
+}
+
+@keyframes pulse-hint {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.9; }
+}
+
+.quiz-hint-pulse {
+  animation: pulse-hint 2s ease-in-out infinite;
+}
+
+.quiz-revealed-card {
+  border-left: 3px solid #22c55e;
+}
+
+.chapter-progress-track {
+  height: 3px;
+  background: rgba(139, 69, 19, 0.1);
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.chapter-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #8b4513, #d4af37);
+  border-radius: 9999px;
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
