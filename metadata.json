@@ -1,0 +1,6 @@
+{
+  "name": "Tibetan Mastery",
+  "description": "An interactive full-stack Tibetan language learning platform covering phonology, orthography, verb systems, imperatives, and advanced grammar through Chapter 8.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

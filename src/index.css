@@ -1,0 +1,37 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;600;800&family=Noto+Sans+Tibetan:wght@400;700&display=swap');
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Cormorant Garamond", serif;
+  --font-tibetan: "Noto Sans Tibetan", "Jomolhari", serif;
+  
+  --color-brand-primary: #8b4513; /* Saddle Brown */
+  --color-brand-secondary: #d4af37; /* Gold */
+  --color-brand-dark: #2c1810;
+  --color-brand-muted: #f4ece1;
+}
+
+body {
+  background-color: #f5f5f0;
+  color: var(--color-brand-dark);
+  font-family: var(--font-sans);
+}
+
+.tibetan-text {
+  font-family: var(--font-tibetan);
+  line-height: normal;
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(139, 69, 19, 0.1);
+}
+
+.word-hover {
+  @apply cursor-pointer transition-all duration-300 rounded px-1 -mx-1;
+}
+.word-hover:hover {
+  @apply bg-brand-primary text-white scale-110 shadow-lg;
+}
