@@ -176,14 +176,14 @@ export const NOUNS = {
     { tib: "བྱང་ཆུབ་སེམས་དཔའ་", eng: "bodhisattva", lit: "awakening-hero" }
   ],
   proper: [
-    { tib: "རྒྱ་གར་", eng: "India", lit: "Indian" },
-    { tib: "རྒྱ་ནག་", eng: "China", lit: "Chinese" },
-    { tib: "བལ་ཡུལ་", eng: "Nepal", lit: "Nepalese" },
-    { tib: "འབྲུག་ཡུལ་", eng: "Bhutan", lit: "Bhutanese" },
-    { tib: "ཨ་རི་", eng: "U.S.A.", lit: "American" },
-    { tib: "དབྱིན་ཡུལ་", eng: "England", lit: "English" },
-    { tib: "ཉི་ཧོང་", eng: "Japan", lit: "Japanese" },
-    { tib: "བོད་", eng: "Tibet", lit: "Tibetan" },
+    { tib: "རྒྱ་གར་", eng: "India", lit: "Indian", flag: "🇮🇳" },
+    { tib: "རྒྱ་ནག་", eng: "China", lit: "Chinese", flag: "🇨🇳" },
+    { tib: "བལ་ཡུལ་", eng: "Nepal", lit: "Nepalese", flag: "🇳🇵" },
+    { tib: "འབྲུག་ཡུལ་", eng: "Bhutan", lit: "Bhutanese", flag: "🇧🇹" },
+    { tib: "ཨ་རི་", eng: "U.S.A.", lit: "American", flag: "🇺🇸" },
+    { tib: "དབྱིན་ཡུལ་", eng: "England", lit: "English", flag: "🏴󠁧󠁢󠁥󠁮󠁧󠁿" },
+    { tib: "ཉི་ཧོང་", eng: "Japan", lit: "Japanese", flag: "🇯🇵" },
+    { tib: "བོད་", eng: "Tibet", lit: "Tibetan", flag: "🏔️" },
     { tib: "རྡོ་རྗེ་གདན་", eng: "Bodhgaya", lit: "diamond-seat" },
     { tib: "ལྷ་ས་", eng: "Lhasa", lit: "god-place" },
     { tib: "ཡིད་བཞིན་ནོར་བུ་", eng: "Dalai Lama", lit: "wish-fulfilling jewel" }

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Book, 
@@ -178,6 +178,11 @@ export default function App() {
   const [visitedSections, setVisitedSections] = useState<Set<Section>>(new Set(['consonants']));
   const [revealAllReading, setRevealAllReading] = useState(false);
 
+  useEffect(() => {
+    document.body.style.overflow = isSidebarOpen ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [isSidebarOpen]);
+
   const navigateTo = (section: Section) => {
     setActiveSection(section);
     setVisitedSections(prev => new Set([...prev, section]));
@@ -308,7 +313,7 @@ export default function App() {
             <div className="p-12 flex flex-col items-center text-center">
               <div className="relative group">
                 <div className="absolute inset-0 bg-brand-primary/5 blur-3xl rounded-full group-hover:bg-brand-primary/10 transition-all" />
-                <span className="relative tibetan-text text-[8rem] sm:text-[10rem] text-brand-dark leading-normal mb-4 select-none drop-shadow-xl block whitespace-nowrap">
+                <span className="relative tibetan-text text-5xl sm:text-7xl md:text-[8rem] text-brand-dark leading-normal mb-4 select-none drop-shadow-xl block">
                   {selectedItem.tib}
                 </span>
               </div>
@@ -1115,6 +1120,9 @@ export default function App() {
                           <div className="flex-shrink-0 min-w-[4rem] h-16 px-3 bg-brand-muted/10 rounded-2xl flex items-center justify-center tibetan-text text-3xl text-brand-primary group-hover:bg-brand-primary group-hover:text-white transition-all whitespace-nowrap">
                             {item.tib}
                           </div>
+                          {(item as any).flag && (
+                            <span className="text-2xl flex-shrink-0 leading-none">{(item as any).flag}</span>
+                          )}
                           <div className="text-right flex-1">
                             <p className="text-lg font-bold text-brand-dark leading-tight">{item.eng}</p>
                             <p className="text-[10px] uppercase font-black tracking-widest text-brand-dark/30 mt-1">
