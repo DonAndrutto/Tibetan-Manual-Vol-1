@@ -177,6 +177,7 @@ export default function App() {
   const [revealedQuiz, setRevealedQuiz] = useState<Record<number, boolean>>({});
   const [visitedSections, setVisitedSections] = useState<Set<Section>>(new Set(['consonants']));
   const [revealAllReading, setRevealAllReading] = useState(false);
+  const [chaptersCollapsed, setChaptersCollapsed] = useState(false);
 
   useEffect(() => {
     document.body.style.overflow = isSidebarOpen ? 'hidden' : '';
@@ -203,27 +204,61 @@ export default function App() {
 
   const composedSyllable = builderBase.tib.replace('་', '') + (builderVowel?.symbol || '');
 
-  const SectionWrapper = ({ children, title, description }: { children: React.ReactNode, title: string, description?: string }) => (
-    <motion.div
-      key={activeSection}
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      transition={{ duration: 0.3 }}
-      className="max-w-6xl mx-auto p-4 md:p-8"
-    >
-      <div className="mb-8">
-        <div className="flex items-center gap-2 mb-3 text-brand-secondary/50 text-[10px] uppercase tracking-[0.3em] font-black">
-          <div className="h-px w-8 bg-current" />
-          <span>Chapter {activeChapter}</span>
-          <div className="h-px w-8 bg-current" />
+  const SectionWrapper = ({ children, title, description }: { children: React.ReactNode, title: string, description?: string }) => {
+    const currentIdx = navItems.findIndex(i => i.id === activeSection);
+    const nextItem = currentIdx >= 0 ? navItems[currentIdx + 1] : undefined;
+    const goToNext = () => {
+      if (!nextItem) return;
+      if (nextItem.chapter !== activeChapter) setActiveChapter(nextItem.chapter);
+      navigateTo(nextItem.id);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+    const hint = CHAPTER_HINTS[activeChapter];
+    return (
+      <motion.div
+        key={activeSection}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -20 }}
+        transition={{ duration: 0.3 }}
+        className="max-w-6xl mx-auto p-4 md:p-8"
+      >
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-3 text-brand-secondary/50 text-[10px] uppercase tracking-[0.3em] font-black">
+            <div className="h-px w-8 bg-current" />
+            <span>Chapter {activeChapter}</span>
+            <div className="h-px w-8 bg-current" />
+          </div>
+          <h2 className="text-3xl font-bold text-brand-dark mb-2 tracking-tight">{title}</h2>
+          {description && <p className="text-brand-dark/70 font-medium">{description}</p>}
         </div>
-        <h2 className="text-3xl font-bold text-brand-dark mb-2 tracking-tight">{title}</h2>
-        {description && <p className="text-brand-dark/70 font-medium">{description}</p>}
-      </div>
-      {children}
-    </motion.div>
-  );
+        {children}
+        <div className="mt-16 pt-8 border-t border-orange-100 space-y-6">
+          {hint && (
+            <div className="bg-orange-50/60 border border-orange-100 rounded-2xl p-5">
+              <div className="flex items-center gap-2 mb-2">
+                <Sparkles className="w-4 h-4 text-brand-secondary" />
+                <span className="text-xs font-semibold text-brand-dark uppercase tracking-wider">{hint.title}</span>
+              </div>
+              <p className="text-sm text-brand-dark/70 leading-relaxed italic">{hint.desc}</p>
+            </div>
+          )}
+          {nextItem && (
+            <button
+              onClick={goToNext}
+              className="w-full sm:w-auto sm:ml-auto flex items-center justify-between gap-4 px-6 py-4 rounded-2xl bg-brand-primary text-white font-semibold shadow-lg shadow-orange-200 hover:shadow-xl hover:bg-brand-primary/90 transition-all group"
+            >
+              <div className="text-left">
+                <div className="text-[10px] uppercase tracking-widest font-black opacity-70">Next topic</div>
+                <div className="text-sm">{nextItem.label}</div>
+              </div>
+              <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            </button>
+          )}
+        </div>
+      </motion.div>
+    );
+  };
 
   const navItems: { id: Section; label: string; icon: any; chapter: number }[] = [
     { id: 'consonants', label: '30 Consonants', icon: Type, chapter: 1 },
@@ -553,28 +588,50 @@ export default function App() {
               </button>
             </div>
 
-            <div className="px-6 mb-6">
+            <div className="px-6 mb-4">
               <div className="bg-brand-muted/30 p-2 rounded-2xl border border-brand-primary/5">
-                <p className="text-[10px] font-black uppercase tracking-widest text-brand-dark/40 mb-2 px-2">Active Chapter</p>
-                <div className="space-y-1">
-                  {CHAPTERS.map(chapter => (
-                    <button
-                      key={chapter.id}
-                      onClick={() => changeChapter(chapter.id)}
-                      className={`w-full flex items-center justify-between px-3 py-2 rounded-xl transition-all ${
-                        activeChapter === chapter.id 
-                        ? 'bg-white shadow-sm ring-1 ring-brand-primary/10' 
-                        : 'hover:bg-white/50 text-brand-dark/50'
-                      }`}
+                <button
+                  onClick={() => setChaptersCollapsed(v => !v)}
+                  className="w-full flex items-center justify-between px-2 py-1 mb-1 rounded-lg hover:bg-white/40 transition-colors"
+                  aria-expanded={!chaptersCollapsed}
+                >
+                  <span className="text-[10px] font-black uppercase tracking-widest text-brand-dark/40">Active Chapter</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-black text-brand-primary">CH. 0{activeChapter}</span>
+                    <ChevronDown className={`w-3 h-3 text-brand-primary transition-transform ${chaptersCollapsed ? '-rotate-90' : ''}`} />
+                  </div>
+                </button>
+                <AnimatePresence initial={false}>
+                  {!chaptersCollapsed && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="overflow-hidden"
                     >
-                      <div className="text-left">
-                        <div className={`text-[10px] font-black uppercase ${activeChapter === chapter.id ? 'text-brand-primary' : 'text-brand-dark/40'}`}>CH. 0{chapter.id}</div>
-                        <div className={`text-xs font-bold leading-tight ${activeChapter === chapter.id ? 'text-brand-dark' : 'text-brand-dark/60'}`}>{chapter.title}</div>
+                      <div className="space-y-1 pt-1">
+                        {CHAPTERS.map(chapter => (
+                          <button
+                            key={chapter.id}
+                            onClick={() => changeChapter(chapter.id)}
+                            className={`w-full flex items-center justify-between px-3 py-2 rounded-xl transition-all ${
+                              activeChapter === chapter.id
+                              ? 'bg-white shadow-sm ring-1 ring-brand-primary/10'
+                              : 'hover:bg-white/50 text-brand-dark/50'
+                            }`}
+                          >
+                            <div className="text-left">
+                              <div className={`text-[10px] font-black uppercase ${activeChapter === chapter.id ? 'text-brand-primary' : 'text-brand-dark/40'}`}>CH. 0{chapter.id}</div>
+                              <div className={`text-xs font-bold leading-tight ${activeChapter === chapter.id ? 'text-brand-dark' : 'text-brand-dark/60'}`}>{chapter.title}</div>
+                            </div>
+                            {activeChapter === chapter.id && <ChevronRight className="w-3 h-3 text-brand-primary" />}
+                          </button>
+                        ))}
                       </div>
-                      {activeChapter === chapter.id && <ChevronRight className="w-3 h-3 text-brand-primary" />}
-                    </button>
-                  ))}
-                </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             </div>
 
@@ -622,16 +679,6 @@ export default function App() {
                 );
               })}
             </nav>
-
-            <div className="p-6 mt-auto border-t border-orange-50 bg-orange-50/50">
-              <div className="flex items-center gap-2 mb-2">
-                <Sparkles className="w-4 h-4 text-brand-secondary" />
-                <span className="text-xs font-semibold text-brand-dark uppercase tracking-wider">{CHAPTER_HINTS[activeChapter]?.title || "Language Note"}</span>
-              </div>
-              <p className="text-xs text-brand-dark/60 leading-relaxed italic">
-                {CHAPTER_HINTS[activeChapter]?.desc || "Keep practicing!"}
-              </p>
-            </div>
           </motion.aside>
         )}
       </AnimatePresence>
@@ -1660,12 +1707,32 @@ export default function App() {
                     <div className="bg-white p-8 rounded-3xl border border-orange-50 shadow-sm">
                       <h3 className="text-sm font-black uppercase tracking-widest text-brand-dark/40 mb-6">Colours</h3>
                       <div className="grid grid-cols-2 gap-3">
-                        {CH4_COLORS.map((c, i) => (
-                          <div key={i} className="flex flex-col bg-brand-muted/10 p-3 rounded-xl border border-transparent hover:border-brand-primary/20 transition-colors">
-                            <span className="tibetan-text text-xl text-brand-dark mb-1">{c.tib}</span>
-                            <span className="text-xs font-bold uppercase text-brand-primary tracking-tight">{c.eng}</span>
-                          </div>
-                        ))}
+                        {CH4_COLORS.map((c, i) => {
+                          const swatchMap: Record<string, string> = {
+                            white: '#ffffff',
+                            black: '#1a1a1a',
+                            red: '#dc2626',
+                            green: '#16a34a',
+                            orange: '#ea580c',
+                            yellow: '#facc15',
+                            blue: '#2563eb',
+                            brown: '#92400e',
+                          };
+                          const bg = swatchMap[c.eng] || '#e5e7eb';
+                          return (
+                            <div key={i} className="flex items-center gap-3 bg-brand-muted/10 p-3 rounded-xl border border-transparent hover:border-brand-primary/20 transition-colors">
+                              <div
+                                className="w-10 h-10 rounded-lg flex-shrink-0 shadow-inner ring-1 ring-black/10"
+                                style={{ backgroundColor: bg }}
+                                aria-hidden="true"
+                              />
+                              <div className="flex flex-col min-w-0">
+                                <span className="tibetan-text text-xl text-brand-dark mb-0.5 truncate">{c.tib}</span>
+                                <span className="text-xs font-bold uppercase text-brand-primary tracking-tight">{c.eng}</span>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   </div>
