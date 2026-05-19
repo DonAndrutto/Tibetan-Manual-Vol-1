@@ -531,7 +531,7 @@ export default function App() {
             initial={{ x: -300 }}
             animate={{ x: 0 }}
             exit={{ x: -300 }}
-            className={`fixed inset-0 z-50 md:relative md:flex w-72 flex-col bg-white border-r border-orange-50 shadow-xl md:shadow-none ${!isSidebarOpen && 'hidden md:flex'}`}
+            className={`fixed inset-0 z-50 flex w-72 flex-col bg-white border-r border-orange-50 shadow-xl md:relative md:shadow-none ${!isSidebarOpen && 'hidden md:flex'}`}
           >
             <div className="p-6 flex items-center justify-between md:mb-4">
               <div className="flex items-center gap-3">
