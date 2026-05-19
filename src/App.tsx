@@ -159,6 +159,15 @@ interface MasteryInfo {
   vocab?: string[];
 }
 
+const gridContainer = {
+  hidden: { opacity: 0 },
+  show: { opacity: 1, transition: { staggerChildren: 0.05 } }
+};
+const gridItem = {
+  hidden: { opacity: 0, y: 18 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.3 } }
+};
+
 export default function App() {
   const [activeSection, setActiveSection] = useState<Section>('consonants');
   const [activeChapter, setActiveChapter] = useState(1);
@@ -166,6 +175,14 @@ export default function App() {
   const [selectedItem, setSelectedItem] = useState<MasteryInfo | null>(null);
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
   const [revealedQuiz, setRevealedQuiz] = useState<Record<number, boolean>>({});
+  const [visitedSections, setVisitedSections] = useState<Set<Section>>(new Set(['consonants']));
+  const [revealAllReading, setRevealAllReading] = useState(false);
+
+  const navigateTo = (section: Section) => {
+    setActiveSection(section);
+    setVisitedSections(prev => new Set([...prev, section]));
+    setRevealAllReading(false);
+  };
 
   const toggleCategory = (category: string) => {
     setExpandedCategories(prev => ({ ...prev, [category]: !prev[category] }));
@@ -178,17 +195,24 @@ export default function App() {
   // Syllable Builder State
   const [builderBase, setBuilderBase] = useState(CONSONANTS[0]);
   const [builderVowel, setBuilderVowel] = useState<any>(null);
-  
+
   const composedSyllable = builderBase.tib.replace('་', '') + (builderVowel?.symbol || '');
 
   const SectionWrapper = ({ children, title, description }: { children: React.ReactNode, title: string, description?: string }) => (
     <motion.div
+      key={activeSection}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
+      transition={{ duration: 0.3 }}
       className="max-w-6xl mx-auto p-4 md:p-8"
     >
       <div className="mb-8">
+        <div className="flex items-center gap-2 mb-3 text-brand-secondary/50 text-[10px] uppercase tracking-[0.3em] font-black">
+          <div className="h-px w-8 bg-current" />
+          <span>Chapter {activeChapter}</span>
+          <div className="h-px w-8 bg-current" />
+        </div>
         <h2 className="text-3xl font-bold text-brand-dark mb-2 tracking-tight">{title}</h2>
         {description && <p className="text-brand-dark/70 font-medium">{description}</p>}
       </div>
@@ -262,7 +286,7 @@ export default function App() {
   const changeChapter = (id: number) => {
     setActiveChapter(id);
     const firstSectionInChapter = navItems.find(i => i.chapter === id)?.id;
-    if (firstSectionInChapter) setActiveSection(firstSectionInChapter);
+    if (firstSectionInChapter) navigateTo(firstSectionInChapter);
     setIsSidebarOpen(false);
   };
 
@@ -332,26 +356,27 @@ export default function App() {
     </AnimatePresence>
   );
 
-  const ReadingWord = ({ word, english, ...props }: { word: string, english: string, [key: string]: any }) => {
+  const ReadingWord = ({ word, english }: { word: string; english: string; key?: React.Key }) => {
     const [showEnglish, setShowEnglish] = useState(false);
+    const isRevealed = showEnglish || revealAllReading;
     return (
-      <div 
+      <div
         className="inline-block relative cursor-help select-none"
         onClick={(e) => {
           e.stopPropagation();
           setShowEnglish(!showEnglish);
         }}
       >
-        <motion.span 
-          animate={{ scale: showEnglish ? 1.1 : 1 }}
+        <motion.span
+          animate={{ scale: isRevealed ? 1.1 : 1 }}
           className={`tibetan-text text-4xl block cursor-pointer transition-all duration-300 ${
-            showEnglish ? 'text-brand-primary' : 'text-brand-dark hover:text-brand-primary/60'
+            isRevealed ? 'text-brand-primary' : 'text-brand-dark hover:text-brand-primary/60'
           }`}
         >
           {word}
         </motion.span>
         <AnimatePresence>
-          {showEnglish && (
+          {isRevealed && (
             <motion.div
               initial={{ opacity: 0, y: 10, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -363,6 +388,114 @@ export default function App() {
             </motion.div>
           )}
         </AnimatePresence>
+      </div>
+    );
+  };
+
+  interface QuizItem { type: string; eng: string; tib: string; }
+  const QuizSection = ({ items, baseIndex }: { items: QuizItem[], baseIndex: number }) => {
+    const total = items.length;
+    const revealedCount = items.filter((_, i) => revealedQuiz[baseIndex + i]).length;
+    const allRevealed = revealedCount === total;
+
+    const revealAll = () => {
+      const next: Record<number, boolean> = { ...revealedQuiz };
+      items.forEach((_, i) => { next[baseIndex + i] = true; });
+      setRevealedQuiz(next);
+    };
+    const resetAll = () => {
+      const next: Record<number, boolean> = { ...revealedQuiz };
+      items.forEach((_, i) => { delete next[baseIndex + i]; });
+      setRevealedQuiz(next);
+    };
+
+    return (
+      <div>
+        {/* Score header */}
+        <div className="flex items-center justify-between mb-6 bg-white rounded-2xl px-6 py-4 border border-orange-50 shadow-sm">
+          <div className="flex items-center gap-4">
+            <div className="text-sm font-black text-brand-dark">
+              <span className="text-brand-primary text-lg">{revealedCount}</span>
+              <span className="text-brand-dark/40"> / {total} revealed</span>
+            </div>
+            <div className="w-32 chapter-progress-track">
+              <motion.div
+                className="chapter-progress-fill"
+                animate={{ width: `${(revealedCount / total) * 100}%` }}
+                transition={{ duration: 0.4 }}
+              />
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={revealAll}
+              disabled={allRevealed}
+              className="text-[11px] font-black uppercase tracking-widest px-4 py-2 bg-brand-primary text-white rounded-xl disabled:opacity-30 hover:bg-brand-dark transition-colors"
+            >
+              Reveal All
+            </button>
+            <button
+              onClick={resetAll}
+              className="text-[11px] font-black uppercase tracking-widest px-4 py-2 bg-brand-muted/40 text-brand-dark rounded-xl hover:bg-brand-muted transition-colors"
+            >
+              Reset
+            </button>
+          </div>
+        </div>
+
+        <AnimatePresence>
+          {allRevealed && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="mb-6 p-5 rounded-2xl text-center shimmer-gold font-black text-lg border border-brand-secondary/30 bg-brand-secondary/5"
+            >
+              ✦ All answers revealed — excellent work! ✦
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <motion.div
+          variants={gridContainer}
+          initial="hidden"
+          animate="show"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+        >
+          {items.map((quiz, i) => {
+            const isRevealed = !!revealedQuiz[baseIndex + i];
+            return (
+              <motion.div
+                key={i}
+                variants={gridItem}
+                onClick={() => toggleQuiz(baseIndex + i)}
+                className={`cursor-pointer bg-brand-dark p-8 rounded-[2.5rem] border shadow-2xl hover:scale-[1.02] transition-all relative overflow-hidden ${isRevealed ? 'border-green-500/20' : 'border-white/5'}`}
+              >
+                {isRevealed && (
+                  <div className="absolute top-4 left-4 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
+                    <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4l3 3 5-6" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  </div>
+                )}
+                <div className="absolute top-0 right-0 w-16 h-16 bg-white/5 rounded-bl-full flex items-center justify-center font-black text-white/10">
+                  {i + 1}
+                </div>
+                <div className="mb-6">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-brand-secondary/40 mb-2">{quiz.type}</p>
+                  <p className="text-xl font-bold text-white/90 leading-tight">{quiz.eng}</p>
+                </div>
+                <div
+                  className={`tibetan-text text-3xl text-brand-secondary transition-all duration-700 bg-white/5 p-6 rounded-2xl text-center shadow-inner ${!isRevealed ? 'quiz-hint-pulse' : ''}`}
+                  style={{ filter: isRevealed ? 'blur(0px)' : 'blur(15px)', opacity: isRevealed ? 1 : 0.05 }}
+                >
+                  {quiz.tib}
+                </div>
+                {!isRevealed && (
+                  <p className="text-center text-[10px] text-white/20 font-bold uppercase tracking-widest mt-3">tap to reveal</p>
+                )}
+              </motion.div>
+            );
+          })}
+        </motion.div>
       </div>
     );
   };
@@ -440,24 +573,49 @@ export default function App() {
               </div>
             </div>
 
-            <nav className="flex-1 px-4 py-2 space-y-1">
-              {filteredNavItems.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => {
-                    setActiveSection(item.id);
-                    setIsSidebarOpen(false);
+            <div className="px-6 mb-3">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[9px] font-black uppercase tracking-widest text-brand-dark/30">Chapter Progress</span>
+                <span className="text-[9px] font-black text-brand-primary">
+                  {filteredNavItems.filter(i => visitedSections.has(i.id)).length}/{filteredNavItems.length}
+                </span>
+              </div>
+              <div className="chapter-progress-track">
+                <motion.div
+                  className="chapter-progress-fill"
+                  animate={{
+                    width: `${(filteredNavItems.filter(i => visitedSections.has(i.id)).length / filteredNavItems.length) * 100}%`
                   }}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
-                    activeSection === item.id 
-                      ? 'bg-brand-primary text-white shadow-lg shadow-orange-200' 
-                      : 'text-brand-dark/70 hover:bg-orange-50 hover:text-brand-primary'
-                  }`}
-                >
-                  <item.icon className={`w-5 h-5 ${activeSection === item.id ? 'text-white' : 'text-brand-primary/40'}`} />
-                  <span className="font-medium">{item.label}</span>
-                </button>
-              ))}
+                  transition={{ duration: 0.5 }}
+                />
+              </div>
+            </div>
+
+            <nav className="flex-1 px-4 py-2 space-y-1 overflow-y-auto">
+              {filteredNavItems.map((item) => {
+                const isVisited = visitedSections.has(item.id);
+                const isActive = activeSection === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => {
+                      navigateTo(item.id);
+                      setIsSidebarOpen(false);
+                    }}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
+                      isActive
+                        ? 'bg-brand-primary text-white shadow-lg shadow-orange-200'
+                        : 'text-brand-dark/70 hover:bg-orange-50 hover:text-brand-primary'
+                    }`}
+                  >
+                    <item.icon className={`w-5 h-5 flex-shrink-0 ${isActive ? 'text-white' : 'text-brand-primary/40'}`} />
+                    <span className="font-medium flex-1 text-left">{item.label}</span>
+                    {isVisited && !isActive && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-brand-secondary flex-shrink-0" />
+                    )}
+                  </button>
+                );
+              })}
             </nav>
 
             <div className="p-6 mt-auto border-t border-orange-50 bg-orange-50/50">
@@ -481,17 +639,24 @@ export default function App() {
               title="The Alphabet" 
               description="Click any character to view its deep mastery info. High tone (warm) vs Low tone (cool)."
             >
-              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-6">
+              <motion.div
+                variants={gridContainer}
+                initial="hidden"
+                animate="show"
+                className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-6"
+              >
                 {CONSONANTS.map((c, idx) => (
                   <motion.div
                     key={idx}
-                    whileHover={{ scale: 1.05, y: -5 }}
+                    variants={gridItem}
+                    whileHover={{ scale: 1.07, y: -6 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => setSelectedItem({ ...c, vocab: [] })}
-                    className="bg-white p-8 rounded-[2rem] border border-orange-50 shadow-sm flex flex-col items-center gap-4 group transition-all cursor-pointer relative overflow-hidden"
+                    className={`bg-white p-8 rounded-[2rem] border border-orange-50 shadow-sm flex flex-col items-center gap-4 group transition-all cursor-pointer relative overflow-hidden ${c.tone === 'Low' ? 'glow-card-cool' : 'glow-card-warm'}`}
                   >
-                    <div className={`absolute top-0 right-0 w-16 h-16 opacity-5 -mr-8 -mt-8 rounded-full ${c.tone === 'Low' ? 'bg-indigo-600' : 'bg-brand-primary'}`} />
-                    <span className="tibetan-text text-6xl text-brand-dark group-hover:text-brand-primary transition-colors">{c.tib}</span>
+                    <div className={`absolute top-0 right-0 w-20 h-20 opacity-5 -mr-10 -mt-10 rounded-full ${c.tone === 'Low' ? 'bg-indigo-600' : 'bg-brand-primary'}`} />
+                    <div className={`absolute bottom-0 left-0 h-1 w-full opacity-20 ${c.tone === 'Low' ? 'bg-indigo-500' : 'bg-brand-secondary'}`} />
+                    <span className="tibetan-text text-6xl text-brand-dark group-hover:text-brand-primary transition-colors drop-shadow-sm">{c.tib}</span>
                     <div className="text-center">
                       <p className="text-xl font-black text-brand-dark mb-1">{c.eng}</p>
                       <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full ${
@@ -502,7 +667,7 @@ export default function App() {
                     </div>
                   </motion.div>
                 ))}
-              </div>
+              </motion.div>
             </SectionWrapper>
           )}
 
@@ -552,16 +717,20 @@ export default function App() {
 
                   <div className="space-y-6">
                     <div>
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 mb-3">1. Select Root</p>
-                      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                        {CONSONANTS.slice(0, 10).map((c, i) => (
-                          <button 
-                            key={i} 
+                      <div className="flex items-center justify-between mb-3">
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-white/40">1. Select Root</p>
+                        <p className="text-[10px] font-bold text-brand-secondary/60">{builderBase.eng} · {builderBase.tone} tone</p>
+                      </div>
+                      <div className="grid grid-cols-6 gap-1.5 max-h-36 overflow-y-auto pr-1">
+                        {CONSONANTS.map((c, i) => (
+                          <motion.button
+                            key={i}
+                            whileTap={{ scale: 0.9 }}
                             onClick={() => setBuilderBase(c)}
-                            className={`flex-shrink-0 w-12 h-12 rounded-xl tibetan-text text-xl flex items-center justify-center transition-all ${builderBase.tib === c.tib ? 'bg-brand-secondary text-brand-dark' : 'bg-white/10 text-white hover:bg-white/20'}`}
+                            className={`w-full aspect-square rounded-xl tibetan-text text-lg flex items-center justify-center transition-all ${builderBase.tib === c.tib ? 'bg-brand-secondary text-brand-dark shadow-lg' : 'bg-white/10 text-white hover:bg-white/20'}`}
                           >
                             {c.tib}
-                          </button>
+                          </motion.button>
                         ))}
                       </div>
                     </div>
@@ -876,6 +1045,18 @@ export default function App() {
 
           {activeSection === 'reading' && (
             <SectionWrapper title="Sacred Reading" description="Click any word to reveal its translation. This is where your mastery is tested.">
+              <div className="flex items-center justify-between mb-8 bg-white rounded-2xl px-6 py-4 border border-orange-50 shadow-sm">
+                <p className="text-sm font-bold text-brand-dark/60">
+                  {revealAllReading ? 'All words revealed' : 'Tap any word to reveal its meaning'}
+                </p>
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setRevealAllReading(prev => !prev)}
+                  className={`text-[11px] font-black uppercase tracking-widest px-5 py-2 rounded-xl transition-colors ${revealAllReading ? 'bg-brand-primary text-white' : 'bg-brand-muted/40 text-brand-dark hover:bg-brand-muted'}`}
+                >
+                  {revealAllReading ? 'Hide All' : 'Reveal All'}
+                </motion.button>
+              </div>
               <div className="space-y-16">
                 {READING_CONTENT.map((prayer, idx) => (
                   <div key={idx} className="bg-white rounded-[3rem] border border-orange-50 shadow-sm overflow-hidden p-1">
@@ -905,25 +1086,7 @@ export default function App() {
 
           {activeSection === 'quiz_ch1' && (
             <SectionWrapper title="Chapter 1 Practice Quiz" description="Test your knowledge of the Tibetan alphabet, vowels, and combinations.">
-               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                 {CHAPTER1_QUIZ.map((quiz, i) => (
-                   <div key={i} onClick={() => toggleQuiz(i + 1000)} className="cursor-pointer bg-brand-dark p-8 rounded-[2.5rem] border border-white/5 shadow-2xl hover:scale-[1.02] transition-all relative overflow-hidden">
-                      <div className="absolute top-0 right-0 w-16 h-16 bg-white/5 rounded-bl-full flex items-center justify-center font-black text-white/10">
-                        {i + 1}
-                      </div>
-                      <div className="mb-6">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-brand-secondary/40 mb-2">{quiz.type}</p>
-                        <p className="text-xl font-bold text-white/90 leading-tight">{quiz.eng}</p>
-                      </div>
-                      <div 
-                        className="tibetan-text text-3xl text-brand-secondary transition-all duration-700 bg-white/5 p-6 rounded-2xl text-center shadow-inner"
-                        style={{ filter: revealedQuiz[i + 1000] ? 'blur(0px)' : 'blur(15px)', opacity: revealedQuiz[i+1000] ? 1 : 0.05 }}
-                      >
-                        {quiz.tib}
-                      </div>
-                   </div>
-                 ))}
-               </div>
+              <QuizSection items={CHAPTER1_QUIZ} baseIndex={1000} />
             </SectionWrapper>
           )}
 
@@ -1192,25 +1355,7 @@ export default function App() {
 
           {activeSection === 'quiz_ch2' && (
             <SectionWrapper title="Chapter 2 Practice Quiz" description="Test your knowledge of nouns, pronouns, and their various forms.">
-               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                 {CHAPTER2_QUIZ.map((quiz, i) => (
-                   <div key={i} onClick={() => toggleQuiz(i + 2000)} className="cursor-pointer bg-brand-dark p-8 rounded-[2.5rem] border border-white/5 shadow-2xl hover:scale-[1.02] transition-all relative overflow-hidden">
-                      <div className="absolute top-0 right-0 w-16 h-16 bg-white/5 rounded-bl-full flex items-center justify-center font-black text-white/10">
-                        {i + 1}
-                      </div>
-                      <div className="mb-6">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-brand-secondary/40 mb-2">{quiz.type}</p>
-                        <p className="text-xl font-bold text-white/90 leading-tight">{quiz.eng}</p>
-                      </div>
-                      <div 
-                        className="tibetan-text text-3xl text-brand-secondary transition-all duration-700 bg-white/5 p-6 rounded-2xl text-center shadow-inner"
-                        style={{ filter: revealedQuiz[i + 2000] ? 'blur(0px)' : 'blur(15px)', opacity: revealedQuiz[i+2000] ? 1 : 0.05 }}
-                      >
-                        {quiz.tib}
-                      </div>
-                   </div>
-                 ))}
-               </div>
+              <QuizSection items={CHAPTER2_QUIZ} baseIndex={2000} />
             </SectionWrapper>
           )}
 
@@ -1452,25 +1597,7 @@ export default function App() {
 
           {activeSection === 'quiz_ch3' && (
             <SectionWrapper title="Chapter 3 Practice Quiz" description="Test your knowledge of basic sentence structure, equational verbs, and existential verbs.">
-               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                 {CHAPTER3_QUIZ.map((quiz, i) => (
-                   <div key={i} onClick={() => toggleQuiz(i + 3000)} className="cursor-pointer bg-brand-dark p-8 rounded-[2.5rem] border border-white/5 shadow-2xl hover:scale-[1.02] transition-all relative overflow-hidden">
-                      <div className="absolute top-0 right-0 w-16 h-16 bg-white/5 rounded-bl-full flex items-center justify-center font-black text-white/10">
-                        {i + 1}
-                      </div>
-                      <div className="mb-6">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-brand-secondary/40 mb-2">{quiz.type}</p>
-                        <p className="text-xl font-bold text-white/90 leading-tight">{quiz.eng}</p>
-                      </div>
-                      <div 
-                        className="tibetan-text text-3xl text-brand-secondary transition-all duration-700 bg-white/5 p-6 rounded-2xl text-center shadow-inner"
-                        style={{ filter: revealedQuiz[i + 3000] ? 'blur(0px)' : 'blur(15px)', opacity: revealedQuiz[i+3000] ? 1 : 0.05 }}
-                      >
-                        {quiz.tib}
-                      </div>
-                   </div>
-                 ))}
-               </div>
+              <QuizSection items={CHAPTER3_QUIZ} baseIndex={3000} />
             </SectionWrapper>
           )}
 
@@ -2334,49 +2461,13 @@ export default function App() {
 
           {activeSection === 'quiz_ch4' && (
             <SectionWrapper title="Chapter 4 Practice Quiz" description="Test your knowledge of adjectives, number order, and time.">
-               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                 {CHAPTER4_QUIZ.map((quiz, i) => (
-                   <div key={i} onClick={() => toggleQuiz(i + 100)} className="cursor-pointer bg-white p-6 rounded-3xl border border-orange-100 shadow-sm hover:shadow-md transition-all relative overflow-hidden group">
-                      <div className="absolute top-0 right-0 w-12 h-12 bg-brand-primary/5 rounded-bl-full flex items-center justify-center font-black text-brand-primary/20 text-[10px]">
-                        {i + 1}
-                      </div>
-                      <div className="mb-4">
-                        <p className="text-xs font-black uppercase tracking-widest text-brand-primary/40 mb-1">{quiz.type}</p>
-                        <p className="text-lg font-bold text-brand-dark">{quiz.eng}</p>
-                      </div>
-                      <div 
-                        className="tibetan-text text-2xl text-brand-primary transition-all duration-500 bg-brand-muted/5 p-4 rounded-xl text-center"
-                        style={{ filter: revealedQuiz[i + 100] ? 'blur(0px)' : 'blur(8px)', opacity: revealedQuiz[i+100] ? 1 : 0.2 }}
-                      >
-                        {quiz.tib}
-                      </div>
-                   </div>
-                 ))}
-               </div>
+              <QuizSection items={CHAPTER4_QUIZ} baseIndex={100} />
             </SectionWrapper>
           )}
 
           {activeSection === 'quiz_ch5' && (
             <SectionWrapper title="Chapter 5 Practice Quiz" description="Test your knowledge of verb tenses, intentionality, and evidentiality markers.">
-               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                 {CHAPTER5_QUIZ.map((quiz, i) => (
-                   <div key={i} onClick={() => toggleQuiz(i + 200)} className="cursor-pointer bg-brand-dark p-6 rounded-3xl border border-white/5 shadow-xl hover:bg-brand-dark/90 transition-all relative overflow-hidden group">
-                      <div className="absolute top-0 right-0 w-12 h-12 bg-white/5 rounded-bl-full flex items-center justify-center font-black text-white/10 text-[10px]">
-                        {i + 1}
-                      </div>
-                      <div className="mb-4">
-                        <p className="text-xs font-black uppercase tracking-widest text-brand-secondary/40 mb-1">{quiz.type}</p>
-                        <p className="text-lg font-bold text-white/90">{quiz.eng}</p>
-                      </div>
-                      <div 
-                        className="tibetan-text text-2xl text-brand-secondary transition-all duration-500 bg-white/5 p-4 rounded-xl text-center"
-                        style={{ filter: revealedQuiz[i + 200] ? 'blur(0px)' : 'blur(10px)', opacity: revealedQuiz[i+200] ? 1 : 0.1 }}
-                      >
-                        {quiz.tib}
-                      </div>
-                   </div>
-                 ))}
-               </div>
+              <QuizSection items={CHAPTER5_QUIZ} baseIndex={200} />
             </SectionWrapper>
           )}
 
@@ -2741,25 +2832,7 @@ export default function App() {
 
           {activeSection === 'quiz_ch6' && (
             <SectionWrapper title="Chapter 6 Practice Quiz" description="Test your mastery of commands, requests, and causative structures.">
-               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                 {CHAPTER6_QUIZ.map((quiz, i) => (
-                   <div key={i} onClick={() => toggleQuiz(i + 300)} className="cursor-pointer bg-brand-dark p-8 rounded-[2.5rem] border border-white/5 shadow-2xl hover:scale-[1.02] transition-all relative overflow-hidden">
-                      <div className="absolute top-0 right-0 w-16 h-16 bg-white/5 rounded-bl-full flex items-center justify-center font-black text-white/10">
-                        {i + 1}
-                      </div>
-                      <div className="mb-6">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-brand-secondary/40 mb-2">{quiz.type}</p>
-                        <p className="text-xl font-bold text-white/90 leading-tight">{quiz.eng}</p>
-                      </div>
-                      <div 
-                        className="tibetan-text text-3xl text-brand-secondary transition-all duration-700 bg-white/5 p-6 rounded-2xl text-center shadow-inner"
-                        style={{ filter: revealedQuiz[i + 300] ? 'blur(0px)' : 'blur(15px)', opacity: revealedQuiz[i+300] ? 1 : 0.05 }}
-                      >
-                        {quiz.tib}
-                      </div>
-                   </div>
-                 ))}
-               </div>
+              <QuizSection items={CHAPTER6_QUIZ} baseIndex={300} />
             </SectionWrapper>
           )}
 
@@ -3086,25 +3159,7 @@ export default function App() {
 
           {activeSection === 'quiz_ch7' && (
             <SectionWrapper title="Chapter 7 Practice Quiz" description="Test your knowledge of desires, intentions, obligations, permissions, and hopes.">
-               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                 {CHAPTER7_QUIZ.map((quiz, i) => (
-                   <div key={i} onClick={() => toggleQuiz(i + 400)} className="cursor-pointer bg-brand-dark p-8 rounded-[2.5rem] border border-white/5 shadow-2xl hover:scale-[1.02] transition-all relative overflow-hidden">
-                      <div className="absolute top-0 right-0 w-16 h-16 bg-white/5 rounded-bl-full flex items-center justify-center font-black text-white/10">
-                        {i + 1}
-                      </div>
-                      <div className="mb-6">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-brand-secondary/40 mb-2">{quiz.type}</p>
-                        <p className="text-xl font-bold text-white/90 leading-tight">{quiz.eng}</p>
-                      </div>
-                      <div 
-                        className="tibetan-text text-3xl text-brand-secondary transition-all duration-700 bg-white/5 p-6 rounded-2xl text-center shadow-inner"
-                        style={{ filter: revealedQuiz[i + 400] ? 'blur(0px)' : 'blur(15px)', opacity: revealedQuiz[i+400] ? 1 : 0.05 }}
-                      >
-                        {quiz.tib}
-                      </div>
-                   </div>
-                 ))}
-               </div>
+              <QuizSection items={CHAPTER7_QUIZ} baseIndex={400} />
             </SectionWrapper>
           )}
 
@@ -3288,25 +3343,7 @@ export default function App() {
 
           {activeSection === 'quiz_ch8' && (
             <SectionWrapper title="Chapter 8 Practice Quiz" description="Test your knowledge of complex syntax, conjunctions, and clause chaining.">
-               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                 {CHAPTER8_QUIZ.map((quiz, i) => (
-                   <div key={i} onClick={() => toggleQuiz(i + 500)} className="cursor-pointer bg-brand-dark p-8 rounded-[2.5rem] border border-white/5 shadow-2xl hover:scale-[1.02] transition-all relative overflow-hidden">
-                      <div className="absolute top-0 right-0 w-16 h-16 bg-white/5 rounded-bl-full flex items-center justify-center font-black text-white/10">
-                        {i + 1}
-                      </div>
-                      <div className="mb-6">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-brand-secondary/40 mb-2">{quiz.type}</p>
-                        <p className="text-xl font-bold text-white/90 leading-tight">{quiz.eng}</p>
-                      </div>
-                      <div 
-                        className="tibetan-text text-3xl text-brand-secondary transition-all duration-700 bg-white/5 p-6 rounded-2xl text-center shadow-inner"
-                        style={{ filter: revealedQuiz[i + 500] ? 'blur(0px)' : 'blur(15px)', opacity: revealedQuiz[i+500] ? 1 : 0.05 }}
-                      >
-                        {quiz.tib}
-                      </div>
-                   </div>
-                 ))}
-               </div>
+              <QuizSection items={CHAPTER8_QUIZ} baseIndex={500} />
             </SectionWrapper>
           )}
 
@@ -3543,25 +3580,7 @@ export default function App() {
 
           {activeSection === 'quiz_ch9' && (
             <SectionWrapper title="Chapter 9 Practice Quiz" description="Test your knowledge of evidentiality, idiomatic expressions, and pragmatics.">
-               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                 {CHAPTER9_QUIZ.map((quiz, i) => (
-                   <div key={i} onClick={() => toggleQuiz(i + 600)} className="cursor-pointer bg-brand-dark p-8 rounded-[2.5rem] border border-white/5 shadow-2xl hover:scale-[1.02] transition-all relative overflow-hidden">
-                      <div className="absolute top-0 right-0 w-16 h-16 bg-white/5 rounded-bl-full flex items-center justify-center font-black text-white/10">
-                        {i + 1}
-                      </div>
-                      <div className="mb-6">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-brand-secondary/40 mb-2">{quiz.type}</p>
-                        <p className="text-xl font-bold text-white/90 leading-tight">{quiz.eng}</p>
-                      </div>
-                      <div 
-                        className="tibetan-text text-3xl text-brand-secondary transition-all duration-700 bg-white/5 p-6 rounded-2xl text-center shadow-inner"
-                        style={{ filter: revealedQuiz[i + 600] ? 'blur(0px)' : 'blur(15px)', opacity: revealedQuiz[i+600] ? 1 : 0.05 }}
-                      >
-                        {quiz.tib}
-                      </div>
-                   </div>
-                 ))}
-               </div>
+              <QuizSection items={CHAPTER9_QUIZ} baseIndex={600} />
             </SectionWrapper>
           )}
 
