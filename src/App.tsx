@@ -319,7 +319,7 @@ export default function App() {
               </div>
               
               <div className="space-y-2 mb-10">
-                <h3 className="text-5xl font-black text-brand-dark uppercase tracking-tight">
+                <h3 className="text-2xl sm:text-4xl md:text-5xl font-black text-brand-dark uppercase tracking-tight break-words text-center">
                   {selectedItem.eng}
                 </h3>
                 {selectedItem.tone && (
@@ -374,7 +374,7 @@ export default function App() {
       >
         <motion.span
           animate={{ scale: isRevealed ? 1.1 : 1 }}
-          className={`tibetan-text text-4xl block cursor-pointer transition-all duration-300 ${
+          className={`tibetan-text text-2xl sm:text-3xl md:text-4xl block cursor-pointer transition-all duration-300 ${
             isRevealed ? 'text-brand-primary' : 'text-brand-dark hover:text-brand-primary/60'
           }`}
         >
@@ -386,7 +386,7 @@ export default function App() {
               initial={{ opacity: 0, y: 10, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 5, scale: 0.95 }}
-              className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-brand-dark text-white text-xs font-bold rounded-xl whitespace-nowrap z-10 shadow-xl"
+              className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-brand-dark text-white text-xs font-bold rounded-xl z-10 shadow-xl max-w-[160px] text-center leading-snug"
             >
               {english}
               <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-brand-dark" />
@@ -661,7 +661,7 @@ export default function App() {
                   >
                     <div className={`absolute top-0 right-0 w-20 h-20 opacity-5 -mr-10 -mt-10 rounded-full ${c.tone === 'Low' ? 'bg-indigo-600' : 'bg-brand-primary'}`} />
                     <div className={`absolute bottom-0 left-0 h-1 w-full opacity-20 ${c.tone === 'Low' ? 'bg-indigo-500' : 'bg-brand-secondary'}`} />
-                    <span className="tibetan-text text-6xl text-brand-dark group-hover:text-brand-primary transition-colors drop-shadow-sm">{c.tib}</span>
+                    <span className="tibetan-text text-4xl sm:text-5xl lg:text-6xl text-brand-dark group-hover:text-brand-primary transition-colors drop-shadow-sm">{c.tib}</span>
                     <div className="text-center">
                       <p className="text-xl font-black text-brand-dark mb-1">{c.eng}</p>
                       <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full ${
@@ -690,7 +690,7 @@ export default function App() {
                           <h3 className="text-xl font-bold text-brand-dark mb-1">{v.name}</h3>
                           <p className="text-brand-dark/50 text-xs">Vowel sound: <span className="font-bold text-brand-primary">"{v.sound}"</span></p>
                         </div>
-                        <span className="tibetan-text text-6xl text-brand-primary leading-normal p-2 bg-brand-muted/20 rounded-2xl whitespace-nowrap">{v.symbol}</span>
+                        <span className="tibetan-text text-4xl sm:text-5xl lg:text-6xl text-brand-primary leading-normal p-2 bg-brand-muted/20 rounded-2xl">{v.symbol}</span>
                       </div>
                       
                       <div className="bg-orange-50/30 p-4 rounded-xl">
@@ -715,7 +715,7 @@ export default function App() {
                   
                   <div className="bg-white/10 p-8 rounded-3xl mb-8 flex items-center justify-center min-h-[360px] relative overflow-hidden backdrop-blur-xl">
                     <div className="absolute inset-0 bg-gradient-to-br from-brand-secondary/10 to-transparent" />
-                    <div className="relative tibetan-text text-[8rem] sm:text-[14rem] text-brand-secondary leading-tight py-12 select-none drop-shadow-[0_10px_20px_rgba(0,0,0,0.3)] whitespace-nowrap">
+                    <div className="relative tibetan-text text-[4rem] sm:text-[8rem] lg:text-[12rem] text-brand-secondary leading-tight py-8 select-none drop-shadow-[0_10px_20px_rgba(0,0,0,0.3)]">
                       {composedSyllable}
                     </div>
                   </div>
@@ -993,7 +993,7 @@ export default function App() {
                               <motion.div 
                                 whileHover={{ scale: 1.05 }}
                                 onClick={() => setSelectedItem({ tib: 'ག', eng: 'Root Letter', vocab: ['The core sound carrier.'] })}
-                                className="tibetan-text text-[10rem] md:text-[14rem] text-brand-primary leading-none cursor-pointer select-none drop-shadow-sm"
+                                className="tibetan-text text-[5rem] sm:text-[8rem] md:text-[10rem] lg:text-[14rem] text-brand-primary leading-none cursor-pointer select-none drop-shadow-sm"
                               >
                                 ག
                               </motion.div>
@@ -1031,7 +1031,7 @@ export default function App() {
                             <div className="px-6 py-2 bg-brand-dark text-white rounded-full font-black text-[10px] uppercase tracking-[0.4em] mb-6 shadow-lg">
                               The Unified Syllable
                             </div>
-                            <div className="tibetan-text text-7xl md:text-8xl text-brand-dark tracking-widest text-center whitespace-nowrap">
+                            <div className="tibetan-text text-4xl sm:text-6xl md:text-7xl lg:text-8xl text-brand-dark text-center">
                               {SYLLABLE_TREE.word}
                             </div>
                           </div>
@@ -1242,7 +1242,7 @@ export default function App() {
                     {GENITIVE_RULES.map((rule, idx) => (
                       <div key={idx} className="p-6 bg-brand-muted/10 rounded-[2.5rem] border border-brand-primary/5 hover:border-brand-primary transition-all text-center">
                         <div className="text-[10px] uppercase font-black tracking-[0.2em] text-brand-dark/40 mb-4 px-2 line-clamp-1">Suffix {rule.endings[0]}...</div>
-                        <div className="tibetan-text text-5xl text-brand-primary mb-4">{rule.particle}</div>
+                        <div className="tibetan-text text-3xl sm:text-4xl lg:text-5xl text-brand-primary mb-4">{rule.particle}</div>
                         <div className="flex flex-wrap justify-center gap-1">
                           {rule.endings.map(e => <span key={e} className="text-[10px] font-bold text-brand-dark/30">{e}</span>)}
                         </div>
@@ -1376,13 +1376,13 @@ export default function App() {
                       <span className="text-[10px] font-black uppercase text-brand-dark/40 tracking-widest mb-4 inline-block px-3 py-1 bg-brand-muted/20 rounded-full">{verb.p} Person</span>
                       <div className="flex items-end gap-4 mb-4">
                         <div className="flex flex-col items-center">
-                          <span className="text-xl text-brand-dark/40 font-semibold mb-1">Affirmative</span>
-                          <span className="tibetan-text text-5xl text-brand-primary">{verb.affirmative}</span>
+                          <span className="text-base sm:text-xl text-brand-dark/40 font-semibold mb-1">Affirmative</span>
+                          <span className="tibetan-text text-3xl sm:text-4xl md:text-5xl text-brand-primary">{verb.affirmative}</span>
                         </div>
                         <div className="w-px h-12 bg-orange-50 mb-2"></div>
                         <div className="flex flex-col items-center">
-                          <span className="text-xl text-brand-dark/40 font-semibold mb-1">Negative</span>
-                          <span className="tibetan-text text-5xl text-brand-dark/60">{verb.neg}</span>
+                          <span className="text-base sm:text-xl text-brand-dark/40 font-semibold mb-1">Negative</span>
+                          <span className="tibetan-text text-3xl sm:text-4xl md:text-5xl text-brand-dark/60">{verb.neg}</span>
                         </div>
                       </div>
                       <p className="text-brand-dark/80 font-bold mt-2">{verb.desc}</p>
@@ -2409,7 +2409,7 @@ export default function App() {
                        <span className="text-[10px] font-black uppercase tracking-widest text-brand-primary bg-brand-primary/5 px-3 py-1 rounded-full">{row.tense}</span>
                      </div>
                      <div className="flex flex-col items-center py-6 relative z-10">
-                       <span className="tibetan-text text-6xl text-brand-dark mb-4 transform group-hover:scale-105 transition-all duration-500">{row.marker}</span>
+                       <span className="tibetan-text text-4xl sm:text-5xl lg:text-6xl text-brand-dark mb-4 transform group-hover:scale-105 transition-all duration-500">{row.marker}</span>
                        <div className="h-px w-8 bg-brand-primary/10 mb-4" />
                        <span className="text-[10px] font-bold text-brand-dark/20 uppercase tracking-[0.3em]">Negator</span>
                      </div>
