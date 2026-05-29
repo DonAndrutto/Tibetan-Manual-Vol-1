@@ -812,7 +812,7 @@ export default function App() {
                           <h3 className="text-xl font-bold text-brand-dark mb-1">{v.name}</h3>
                           <p className="text-brand-dark/50 text-xs">Vowel sound: <span className="font-bold text-brand-primary">"{v.sound}"</span></p>
                         </div>
-                        <span className="tibetan-text text-6xl text-brand-primary leading-normal p-2 bg-brand-muted/20 rounded-2xl whitespace-nowrap">{v.symbol}</span>
+                        <span className="tibetan-text text-6xl text-brand-primary leading-normal p-2 bg-brand-muted/20 rounded-2xl whitespace-nowrap">{'◌' + v.symbol}</span>
                       </div>
                       
                       <div className="bg-orange-50/30 p-4 rounded-xl">
@@ -877,7 +877,7 @@ export default function App() {
                             onClick={() => setBuilderVowel(v)}
                             className={`w-12 h-12 rounded-xl tibetan-text text-2xl flex items-center justify-center transition-all ${builderVowel?.symbol === v.symbol ? 'bg-brand-secondary text-brand-dark' : 'bg-white/10 text-white hover:bg-white/20'}`}
                           >
-                            {v.symbol}
+                            {'◌' + v.symbol}
                           </button>
                         ))}
                       </div>
