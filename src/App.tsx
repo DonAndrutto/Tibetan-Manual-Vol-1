@@ -34,8 +34,9 @@ import {
   Clock
 } from 'lucide-react';
 import { 
-  CONSONANTS, 
-  VOWELS, 
+  CONSONANTS,
+  VOWELS,
+  VOWEL_VOCAB,
   SUBSCRIPTS, 
   SUPERSCRIPTS, 
   PROVERBS, 
@@ -883,6 +884,25 @@ export default function App() {
                       </div>
                     </div>
                   </div>
+                </div>
+              </div>
+
+              <div className="mt-10">
+                <p className="text-[10px] font-bold text-brand-primary/40 uppercase tracking-widest mb-6">Vocabulary — Single Consonant + Vowel</p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-4">
+                  {VOWEL_VOCAB.map((w, i) => (
+                    <motion.div
+                      key={i}
+                      whileHover={{ scale: 1.07, y: -4 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => setSelectedItem({ tib: w.tib, eng: w.eng, vocab: [] })}
+                      className="bg-white p-5 rounded-2xl border border-orange-50 shadow-sm flex flex-col items-center gap-2 cursor-pointer hover:border-brand-primary/30 transition-all"
+                    >
+                      <span className="tibetan-text text-4xl text-brand-dark leading-normal">{w.tib}</span>
+                      <span className="text-xs font-bold text-brand-primary/60 tracking-wide">{w.rom}</span>
+                      <span className="text-[10px] text-brand-dark/50 text-center leading-tight">{w.eng}</span>
+                    </motion.div>
+                  ))}
                 </div>
               </div>
             </SectionWrapper>

@@ -40,6 +40,37 @@ export const VOWELS = [
   }
 ];
 
+export const VOWEL_VOCAB = [
+  { tib: "ཀོ་", rom: "ko",   eng: "leather" },
+  { tib: "ཁེ་", rom: "khe",  eng: "profit, advantage" },
+  { tib: "ཁོ་", rom: "kho",  eng: "he, him" },
+  { tib: "ངོ་", rom: "ngo",  eng: "face" },
+  { tib: "ཆུ་", rom: "chu",  eng: "water" },
+  { tib: "ཇོ་", rom: "jo",   eng: "lord, master" },
+  { tib: "ཉི་", rom: "nyi",  eng: "sun" },
+  { tib: "ཐོ་", rom: "tho",  eng: "list, register" },
+  { tib: "དེ་", rom: "de",   eng: "that" },
+  { tib: "དུ་", rom: "du",   eng: "smoke" },
+  { tib: "ནུ་", rom: "nu",   eng: "breast" },
+  { tib: "ཕོ་", rom: "pho",  eng: "male" },
+  { tib: "བུ་", rom: "bu",   eng: "son, boy" },
+  { tib: "མི་", rom: "mi",   eng: "man, person, human" },
+  { tib: "མུ་", rom: "mu",   eng: "boundary, edge" },
+  { tib: "མེ་", rom: "me",   eng: "fire" },
+  { tib: "མོ་", rom: "mo",   eng: "female, divination" },
+  { tib: "ཚེ་", rom: "tshe", eng: "life, lifespan" },
+  { tib: "ཞི་", rom: "zhi",  eng: "peace" },
+  { tib: "ཟོ་", rom: "zo",   eng: "eat (imperative)" },
+  { tib: "རི་", rom: "ri",   eng: "mountain" },
+  { tib: "རུ་", rom: "ru",   eng: "horn, division" },
+  { tib: "རེ་", rom: "re",   eng: "each, to hope" },
+  { tib: "ལི་", rom: "li",   eng: "bronze, bell-metal" },
+  { tib: "ལོ་", rom: "lo",   eng: "year" },
+  { tib: "ཤི་", rom: "shi",  eng: "to die" },
+  { tib: "སུ་", rom: "su",   eng: "who" },
+  { tib: "སོ་", rom: "so",   eng: "tooth" },
+];
+
 export const PROVERBS = [
   {
     tib: "སྐྱུར་མོ་གཅིག་དང་མ་འཕྲད་ན། མངར་མོ་ཚང་མ་ཅང་ཅང་ཡིན།",
