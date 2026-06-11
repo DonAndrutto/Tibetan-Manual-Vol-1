@@ -31,7 +31,8 @@ import {
   Coffee,
   BookOpen,
   Network,
-  Clock
+  Clock,
+  Search
 } from 'lucide-react';
 import { 
   CONSONANTS,
@@ -169,6 +170,360 @@ const gridItem = {
   show: { opacity: 1, y: 0, transition: { duration: 0.3 } }
 };
 
+// Cross-references between sections, rendered as "Related topics" cards in every section footer.
+const RELATED_TOPICS: Partial<Record<Section, { id: Section; note: string }[]>> = {
+  consonants: [
+    { id: 'vowels', note: 'Add vowel signs to the root letters you just learned' },
+    { id: 'superscripts', note: 'Head letters silently raise a low-tone root' },
+    { id: 'reading', note: 'See the alphabet at work in real prayers' },
+  ],
+  vowels: [
+    { id: 'consonants', note: 'Every vowel sign rides on a root consonant' },
+    { id: 'orthography', note: 'Suffixes can shift a vowel — the umlaut rules' },
+    { id: 'subscripts', note: 'Stack letters below the root before adding vowels' },
+  ],
+  subscripts: [
+    { id: 'superscripts', note: 'The mirror image: letters stacked above the root' },
+    { id: 'orthography', note: 'See subscripts inside the full syllable tree' },
+    { id: 'consonants', note: 'Review the 30 roots that subscripts modify' },
+  ],
+  superscripts: [
+    { id: 'subscripts', note: 'Letters that stack below instead of above' },
+    { id: 'consonants', note: 'Compare the bare roots and their tones' },
+    { id: 'orthography', note: 'Superscripts in the anatomy of a syllable' },
+  ],
+  orthography: [
+    { id: 'vowels', note: 'The vowel sounds that umlaut rules transform' },
+    { id: 'subscripts', note: 'Subscript combinations inside complex stacks' },
+    { id: 'reading', note: 'Apply the rules to authentic texts' },
+  ],
+  reading: [
+    { id: 'orthography', note: 'Decode tricky syllables with the structure rules' },
+    { id: 'consonants', note: 'Brush up the alphabet behind every word' },
+    { id: 'idioms', note: 'More authentic language: proverbs and idioms' },
+  ],
+  nouns: [
+    { id: 'pronouns', note: 'Words that stand in for the nouns here' },
+    { id: 'particles', note: 'Case particles that attach to every noun' },
+    { id: 'adjectives', note: 'Describe these nouns — adjectives follow the noun' },
+  ],
+  pronouns: [
+    { id: 'nouns', note: 'The lexicon pronouns replace' },
+    { id: 'possession', note: 'Genitive pronouns: my, your, his' },
+    { id: 'equational_verbs', note: 'Pronoun choice decides ཡིན། vs རེད།' },
+  ],
+  particles: [
+    { id: 'possession', note: 'The genitive in action: ownership sentences' },
+    { id: 'existential_verbs', note: 'Dative-locative ལ་ powers location sentences' },
+    { id: 'verbs_intro', note: 'The agentive particle marks who acts' },
+  ],
+  equational_verbs: [
+    { id: 'existential_verbs', note: '"To be" for location instead of identity' },
+    { id: 'pronouns', note: 'Person determines which verb you pick' },
+    { id: 'evidentiality', note: 'How ཡིན/རེད evolve into nuance markers' },
+  ],
+  existential_verbs: [
+    { id: 'equational_verbs', note: '"To be" for identity instead of location' },
+    { id: 'possession', note: 'ཡོད/འདུག also expresses having things' },
+    { id: 'particles', note: 'Review the ལ་ particle these sentences rely on' },
+  ],
+  possession: [
+    { id: 'particles', note: 'The genitive particles behind ownership' },
+    { id: 'pronouns', note: 'Possessive pronoun forms' },
+    { id: 'existential_verbs', note: 'Possession reuses the existential verbs' },
+  ],
+  questions: [
+    { id: 'verb_interrogative', note: 'Question forms for full action verbs' },
+    { id: 'pragmatics', note: 'Conversational tags and clarification questions' },
+    { id: 'equational_verbs', note: 'The statement forms these questions flip' },
+  ],
+  adjectives: [
+    { id: 'nouns', note: 'Adjectives follow the noun they describe' },
+    { id: 'numbers', note: 'Quantify what you just described' },
+    { id: 'equational_verbs', note: 'Adjective sentences end in ཡིན/རེད' },
+  ],
+  numbers: [
+    { id: 'time', note: 'Numbers in action: dates, hours, and ages' },
+    { id: 'adjectives', note: 'Comparatives pair naturally with quantities' },
+  ],
+  time: [
+    { id: 'numbers', note: 'The numerals behind every date and hour' },
+    { id: 'temporal', note: '"When / while / before" clauses in Chapter 8' },
+  ],
+  verbs_intro: [
+    { id: 'particles', note: 'The agentive particle introduced in Chapter 2' },
+    { id: 'verb_tenses_1st', note: 'Conjugate these verbs for I / we' },
+    { id: 'verb_tenses_others', note: 'Conjugation for everyone else' },
+  ],
+  verb_tenses_1st: [
+    { id: 'verb_tenses_others', note: 'The parallel system for 2nd & 3rd person' },
+    { id: 'verb_negative', note: 'Negate each of these tenses' },
+    { id: 'verb_advanced', note: 'Continuous and habitual aspects' },
+  ],
+  verb_tenses_others: [
+    { id: 'verb_tenses_1st', note: 'The first-person system to contrast' },
+    { id: 'evidentiality', note: 'The full witnessed-vs-assumed system' },
+    { id: 'verb_interrogative', note: 'Turn these forms into questions' },
+  ],
+  verb_advanced: [
+    { id: 'verb_tenses_1st', note: 'The base tenses these aspects build on' },
+    { id: 'temporal', note: '"While doing" clauses use similar machinery' },
+  ],
+  verb_involuntary: [
+    { id: 'verbs_intro', note: 'Voluntary verbs — the contrasting class' },
+    { id: 'verb_passive', note: 'Another agent-less construction' },
+    { id: 'hopes', note: 'Feelings and wishes often pattern as involuntary' },
+  ],
+  verb_interrogative: [
+    { id: 'questions', note: 'Question basics from Chapter 3' },
+    { id: 'verb_negative', note: 'Negative questions combine both systems' },
+    { id: 'pragmatics', note: 'Softening and clarifying questions in speech' },
+  ],
+  verb_negative: [
+    { id: 'verb_tenses_1st', note: 'The affirmative forms being negated' },
+    { id: 'prohibition', note: '"Don\'t" and "must not" in Chapter 7' },
+    { id: 'verb_interrogative', note: 'Ask negative questions' },
+  ],
+  verb_passive: [
+    { id: 'verb_involuntary', note: 'Involuntary verbs share the agent-less feel' },
+    { id: 'verbs_intro', note: 'The agentive marking that passives drop' },
+  ],
+  imperatives: [
+    { id: 'requests', note: 'The polite way to get things done' },
+    { id: 'prohibition', note: 'Forbid an action instead of commanding it' },
+    { id: 'causatives', note: 'Make or let someone do something' },
+  ],
+  requests: [
+    { id: 'imperatives', note: 'Direct commands, when politeness can drop' },
+    { id: 'indirect_requests', note: 'Report a request someone else made' },
+    { id: 'permission', note: 'Asking "may I?" politely' },
+  ],
+  indirect_requests: [
+    { id: 'requests', note: 'The direct requests being reported' },
+    { id: 'quotations', note: 'The full direct-speech system in Chapter 9' },
+  ],
+  offering: [
+    { id: 'suggestions', note: '"Let\'s …" — including yourself in the offer' },
+    { id: 'requests', note: 'Asking rather than offering' },
+  ],
+  suggestions: [
+    { id: 'offering', note: '"Shall I …?" — offering to act alone' },
+    { id: 'imperatives', note: 'Stronger than a suggestion: a command' },
+  ],
+  causatives: [
+    { id: 'imperatives', note: 'Direct commands without an intermediary' },
+    { id: 'verbs_intro', note: 'The verb classes causatives operate on' },
+  ],
+  situations: [
+    { id: 'requests', note: 'Phrases for asking in real situations' },
+    { id: 'pragmatics', note: 'Conversational flow in Chapter 9' },
+  ],
+  desires: [
+    { id: 'intentions', note: 'From wanting to planning' },
+    { id: 'hopes', note: 'Wishes for things beyond your control' },
+  ],
+  intentions: [
+    { id: 'desires', note: 'The wants that precede a plan' },
+    { id: 'purpose', note: '"In order to" clauses in Chapter 8' },
+    { id: 'obligation', note: 'When intent becomes necessity' },
+  ],
+  obligation: [
+    { id: 'prohibition', note: 'The mirror: what you must not do' },
+    { id: 'permission', note: 'What you are allowed to do' },
+  ],
+  prohibition: [
+    { id: 'obligation', note: 'The mirror: what you must do' },
+    { id: 'verb_negative', note: 'The negation system behind "don\'t"' },
+    { id: 'imperatives', note: 'Negative commands in Chapter 6' },
+  ],
+  permission: [
+    { id: 'obligation', note: 'Necessity instead of permission' },
+    { id: 'requests', note: 'Politely asking for things' },
+  ],
+  hopes: [
+    { id: 'desires', note: 'Wanting what you can act on' },
+    { id: 'verb_involuntary', note: 'Hopes pattern like involuntary verbs' },
+  ],
+  infinitives: [
+    { id: 'purpose', note: 'Infinitives inside "in order to" clauses' },
+    { id: 'verbs_intro', note: 'The verb stems infinitives are built from' },
+  ],
+  temporal: [
+    { id: 'time', note: 'Telling time and dates from Chapter 4' },
+    { id: 'sequential', note: '"And then …" — chaining actions in order' },
+    { id: 'conditional', note: '"If" clauses share the structure of "when"' },
+  ],
+  conditional: [
+    { id: 'temporal', note: '"When" clauses — the non-hypothetical cousin' },
+    { id: 'concessive', note: '"Even if" builds directly on "if"' },
+  ],
+  causal: [
+    { id: 'concessive', note: '"Although" — conceding instead of explaining' },
+    { id: 'conjunctions', note: 'More connectors for complex sentences' },
+  ],
+  concessive: [
+    { id: 'conditional', note: 'The "if" forms inside "even if"' },
+    { id: 'causal', note: '"Because" — explaining instead of conceding' },
+  ],
+  purpose: [
+    { id: 'intentions', note: 'Stating plans from Chapter 7' },
+    { id: 'infinitives', note: 'The infinitive forms purpose clauses use' },
+  ],
+  sequential: [
+    { id: 'temporal', note: 'Anchoring actions to times instead of order' },
+    { id: 'conjunctions', note: 'Other ways to join clauses' },
+  ],
+  conjunctions: [
+    { id: 'particles', note: 'Case particles — the other connective system' },
+    { id: 'causal', note: 'Cause-and-effect connectors in depth' },
+    { id: 'sequential', note: 'Ordering events with ནས་' },
+  ],
+  evidentiality: [
+    { id: 'verb_tenses_others', note: 'Witnessed vs assumed in everyday tenses' },
+    { id: 'equational_verbs', note: 'Where the ཡིན/རེད contrast began' },
+    { id: 'pragmatics', note: 'Putting nuance to work in conversation' },
+  ],
+  pragmatics: [
+    { id: 'questions', note: 'Question formats from Chapter 3' },
+    { id: 'evidentiality', note: 'The knowledge markers behind the tags' },
+    { id: 'idioms', note: 'Idiomatic color for natural speech' },
+  ],
+  idioms: [
+    { id: 'pragmatics', note: 'Conversational glue around the idioms' },
+    { id: 'reading', note: 'Authentic texts to spot idioms in' },
+  ],
+  quotations: [
+    { id: 'indirect_requests', note: 'Reporting requests — a special case' },
+    { id: 'evidentiality', note: 'Hearsay ཟ་ derives from ཟེར་ "to say"' },
+  ],
+};
+
+// Interactive past→future timeline. Module-level so its selection survives App re-renders.
+const TenseTimeline = ({ items }: { items: { tense: string; structure: string; neg?: string }[] }) => {
+  const [selected, setSelected] = useState(0);
+  const current = items[Math.min(selected, items.length - 1)];
+  return (
+    <div>
+      <div className="overflow-x-auto pb-3 -mx-2 px-2">
+        <div className="relative flex gap-2 min-w-max">
+          <div className="absolute left-6 right-6 top-[18px] h-0.5 bg-gradient-to-r from-white/10 via-brand-secondary/40 to-white/10" />
+          {items.map((t, i) => {
+            const isActive = i === selected;
+            return (
+              <button
+                key={i}
+                onClick={() => setSelected(i)}
+                className="relative flex flex-col items-center gap-2 w-28 group"
+              >
+                <span className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-black border-2 transition-all ${
+                  isActive
+                    ? 'bg-brand-secondary border-brand-secondary text-brand-dark scale-110 shadow-lg shadow-brand-secondary/20'
+                    : 'bg-brand-dark border-white/20 text-white/50 group-hover:border-brand-secondary/50 group-hover:text-white'
+                }`}>
+                  {i + 1}
+                </span>
+                <span className={`text-[9px] font-black uppercase tracking-wider text-center leading-tight transition-colors ${
+                  isActive ? 'text-brand-secondary' : 'text-white/40 group-hover:text-white/70'
+                }`}>
+                  {t.tense}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={selected}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
+          transition={{ duration: 0.2 }}
+          className="mt-4 p-8 bg-white/5 rounded-3xl border border-white/10"
+        >
+          <span className="text-xs font-black uppercase tracking-widest text-brand-secondary mb-3 block">{current.tense}</span>
+          <div className="tibetan-text text-3xl text-white mb-4 leading-relaxed">{current.structure}</div>
+          {current.neg && (
+            <div className="flex items-center gap-3">
+              <span className="px-2 py-0.5 bg-red-400/10 text-red-300 rounded font-black uppercase tracking-widest text-[10px]">Negative</span>
+              <span className="tibetan-text text-lg text-white/70">{current.neg}</span>
+            </div>
+          )}
+          <div className="flex items-center justify-between mt-6 pt-4 border-t border-white/5">
+            <button
+              onClick={() => setSelected(s => Math.max(0, s - 1))}
+              disabled={selected === 0}
+              className="text-[10px] font-black uppercase tracking-widest text-white/40 hover:text-white disabled:opacity-20 transition-colors"
+            >
+              ← Prev
+            </button>
+            <span className="text-[10px] font-black text-white/20 uppercase tracking-widest">{selected + 1} / {items.length}</span>
+            <button
+              onClick={() => setSelected(s => Math.min(items.length - 1, s + 1))}
+              disabled={selected === items.length - 1}
+              className="text-[10px] font-black uppercase tracking-widest text-white/40 hover:text-white disabled:opacity-20 transition-colors"
+            >
+              Next →
+            </button>
+          </div>
+        </motion.div>
+      </AnimatePresence>
+    </div>
+  );
+};
+
+const EVIDENTIALITY_SPECTRUM: { cat: string; particle: string; label: string; desc: string }[] = [
+  { cat: 'Discovery', particle: 'ཤག', label: 'Discovery', desc: 'You found out first-hand — often with surprise' },
+  { cat: 'Refutation/Assertion', particle: 'པ་རེད།', label: 'Assertion', desc: 'You vouch for the fact, setting the record straight' },
+  { cat: 'Presumption', particle: 'ཤག་ཡིན།', label: 'Presumption', desc: 'You infer or assume it to be true' },
+  { cat: 'Hearsay', particle: 'ཟ་', label: 'Hearsay', desc: 'Someone told you — a second-hand report' },
+];
+
+const EvidentialitySpectrum = ({ active, onSelect }: { active: string | null; onSelect: (cat: string | null) => void }) => (
+  <div className="bg-brand-dark rounded-[3rem] p-8 md:p-10 text-white relative overflow-hidden">
+    <div className="absolute top-0 right-0 w-64 h-64 bg-brand-secondary/5 -mr-16 -mt-16 rounded-full blur-3xl pointer-events-none" />
+    <div className="flex items-center justify-between flex-wrap gap-3 mb-2">
+      <h3 className="text-xl font-bold">The Certainty Spectrum</h3>
+      {active && (
+        <button
+          onClick={() => onSelect(null)}
+          className="text-[10px] font-black uppercase tracking-widest px-3 py-1.5 bg-white/10 rounded-lg hover:bg-white/20 transition-colors"
+        >
+          Show all ✕
+        </button>
+      )}
+    </div>
+    <p className="text-white/50 text-sm mb-8 max-w-2xl">
+      Every marker tells the listener <em>how you know</em>. Tap a marker to focus on its examples below.
+    </p>
+    <div className="h-1.5 rounded-full bg-gradient-to-r from-emerald-400 via-brand-secondary to-rose-400 mb-6" />
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      {EVIDENTIALITY_SPECTRUM.map((node) => {
+        const isActive = active === node.cat;
+        return (
+          <button
+            key={node.cat}
+            onClick={() => onSelect(isActive ? null : node.cat)}
+            className={`text-left p-4 rounded-2xl border transition-all ${
+              isActive
+                ? 'bg-brand-secondary/15 border-brand-secondary shadow-lg shadow-brand-secondary/10'
+                : 'bg-white/5 border-white/5 hover:bg-white/10 hover:border-white/20'
+            }`}
+          >
+            <span className={`tibetan-text text-2xl block mb-2 ${isActive ? 'text-brand-secondary' : 'text-white/80'}`}>{node.particle}</span>
+            <span className={`text-[10px] font-black uppercase tracking-widest block mb-1 ${isActive ? 'text-brand-secondary' : 'text-white/60'}`}>{node.label}</span>
+            <span className="text-[11px] text-white/40 leading-snug block">{node.desc}</span>
+          </button>
+        );
+      })}
+    </div>
+    <div className="flex justify-between mt-4 text-[9px] font-black uppercase tracking-[0.25em] text-white/30">
+      <span>First-hand</span>
+      <span>Second-hand</span>
+    </div>
+  </div>
+);
+
 export default function App() {
   const [activeSection, setActiveSection] = useState<Section>('consonants');
   const [activeChapter, setActiveChapter] = useState(1);
@@ -179,6 +534,9 @@ export default function App() {
   const [visitedSections, setVisitedSections] = useState<Set<Section>>(new Set(['consonants']));
   const [revealAllReading, setRevealAllReading] = useState(false);
   const [chaptersCollapsed, setChaptersCollapsed] = useState(false);
+  const [navQuery, setNavQuery] = useState('');
+  const [toneFilter, setToneFilter] = useState<'All' | 'High' | 'Low'>('All');
+  const [eviFocus, setEviFocus] = useState<string | null>(null);
   const mainRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -280,16 +638,11 @@ export default function App() {
   const SectionWrapper = ({ children, title, description }: { children: React.ReactNode, title: string, description?: string }) => {
     const currentIdx = navItems.findIndex(i => i.id === activeSection);
     const nextItem = currentIdx >= 0 ? navItems[currentIdx + 1] : undefined;
-    const goToNext = () => {
-      if (!nextItem) return;
-      if (nextItem.chapter !== activeChapter) setActiveChapter(nextItem.chapter);
-      navigateTo(nextItem.id);
-      requestAnimationFrame(() => {
-        mainRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      });
-    };
+    const goToNext = () => { if (nextItem) goToSection(nextItem.id); };
     const hint = CHAPTER_HINTS[activeChapter];
+    const relatedItems = (RELATED_TOPICS[activeSection] ?? [])
+      .map(r => ({ note: r.note, item: navItems.find(i => i.id === r.id) }))
+      .filter((r): r is { note: string; item: (typeof navItems)[number] } => !!r.item);
     return (
       <motion.div
         key={activeSection}
@@ -310,6 +663,34 @@ export default function App() {
         </div>
         {children}
         <div className="mt-16 pt-8 border-t border-orange-100 space-y-6">
+          {relatedItems.length > 0 && (
+            <div>
+              <div className="flex items-center gap-2 mb-4">
+                <Network className="w-4 h-4 text-brand-primary" />
+                <span className="text-xs font-semibold text-brand-dark uppercase tracking-wider">Related Topics</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {relatedItems.map(({ item, note }) => (
+                  <motion.button
+                    key={item.id}
+                    whileHover={{ y: -3 }}
+                    onClick={() => goToSection(item.id)}
+                    className="text-left p-5 bg-white rounded-2xl border border-orange-100 shadow-sm hover:border-brand-primary/40 hover:shadow-md transition-all group"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[9px] font-black uppercase tracking-widest text-brand-primary/50">Chapter {item.chapter}</span>
+                      <ChevronRight className="w-4 h-4 text-brand-primary/30 group-hover:text-brand-primary group-hover:translate-x-0.5 transition-all" />
+                    </div>
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <item.icon className="w-4 h-4 text-brand-primary/60 flex-shrink-0" />
+                      <span className="font-bold text-sm text-brand-dark">{item.label}</span>
+                    </div>
+                    <p className="text-xs text-brand-dark/50 leading-snug">{note}</p>
+                  </motion.button>
+                ))}
+              </div>
+            </div>
+          )}
           {hint && (
             <div className="bg-orange-50/60 border border-orange-100 rounded-2xl p-5">
               <div className="flex items-center gap-2 mb-2">
@@ -399,11 +780,29 @@ export default function App() {
 
   const filteredNavItems = navItems.filter(item => item.chapter === activeChapter);
 
+  const trimmedNavQuery = navQuery.trim().toLowerCase();
+  const navSearchResults = trimmedNavQuery
+    ? navItems.filter(i => i.label.toLowerCase().includes(trimmedNavQuery))
+    : [];
+
   const changeChapter = (id: number) => {
     setActiveChapter(id);
     const firstSectionInChapter = navItems.find(i => i.chapter === id)?.id;
     if (firstSectionInChapter) navigateTo(firstSectionInChapter);
     setIsSidebarOpen(false);
+  };
+
+  // Jump to any section, switching chapters if needed (used by related-topic
+  // cards, search results, quiz review chips, and the next-topic button).
+  const goToSection = (id: Section) => {
+    const item = navItems.find(i => i.id === id);
+    if (!item) return;
+    if (item.chapter !== activeChapter) setActiveChapter(item.chapter);
+    navigateTo(id);
+    requestAnimationFrame(() => {
+      mainRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
   };
 
   const MasteryModal = () => (
@@ -525,8 +924,32 @@ export default function App() {
       setRevealedQuiz(next);
     };
 
+    const reviewItems = navItems.filter(i => i.chapter === activeChapter && !i.id.startsWith('quiz'));
+
     return (
       <div>
+        {/* Review links for this chapter's topics */}
+        {reviewItems.length > 0 && (
+          <div className="mb-6 bg-white rounded-2xl px-6 py-5 border border-orange-50 shadow-sm">
+            <div className="flex items-center gap-2 mb-3">
+              <BookOpen className="w-4 h-4 text-brand-primary" />
+              <span className="text-[10px] font-black uppercase tracking-widest text-brand-dark/40">Review before you start</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {reviewItems.map(item => (
+                <button
+                  key={item.id}
+                  onClick={() => goToSection(item.id)}
+                  className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 bg-brand-muted/30 text-brand-dark rounded-lg hover:bg-brand-primary hover:text-white transition-colors"
+                >
+                  <item.icon className="w-3.5 h-3.5" />
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Score header */}
         <div className="flex items-center justify-between mb-6 bg-white rounded-2xl px-6 py-4 border border-orange-50 shadow-sm">
           <div className="flex items-center gap-4">
@@ -634,7 +1057,8 @@ export default function App() {
       {/* Sidebar */}
       <AnimatePresence>
         {isSidebarOpen && (
-          <motion.div 
+          <motion.div
+            key="sidebar-backdrop"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -644,6 +1068,7 @@ export default function App() {
         )}
         {(isSidebarOpen || window.innerWidth >= 768) && (
           <motion.aside
+            key="sidebar-panel"
             initial={{ x: -300 }}
             animate={{ x: 0 }}
             exit={{ x: -300 }}
@@ -664,6 +1089,58 @@ export default function App() {
               </button>
             </div>
 
+            <div className="px-6 mb-4">
+              <div className="relative">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-dark/30 pointer-events-none" />
+                <input
+                  type="text"
+                  value={navQuery}
+                  onChange={e => setNavQuery(e.target.value)}
+                  placeholder="Jump to any topic…"
+                  className="w-full pl-10 pr-9 py-2.5 bg-brand-muted/30 border border-brand-primary/5 rounded-xl text-sm font-medium text-brand-dark placeholder:text-brand-dark/30 focus:outline-none focus:border-brand-primary/30 focus:bg-white transition-all"
+                />
+                {navQuery && (
+                  <button
+                    onClick={() => setNavQuery('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-black/5 transition-colors"
+                  >
+                    <X className="w-3.5 h-3.5 text-brand-dark/40" />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {trimmedNavQuery ? (
+            <div className="px-4 pb-8 space-y-1">
+              <p className="px-2 mb-2 text-[10px] font-black uppercase tracking-widest text-brand-dark/30">
+                {navSearchResults.length} {navSearchResults.length === 1 ? 'match' : 'matches'} across all chapters
+              </p>
+              {navSearchResults.map(item => (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    goToSection(item.id);
+                    setNavQuery('');
+                    setIsSidebarOpen(false);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-brand-dark/70 hover:bg-orange-50 hover:text-brand-primary transition-all"
+                >
+                  <item.icon className="w-4 h-4 flex-shrink-0 text-brand-primary/40" />
+                  <div className="flex-1 text-left min-w-0">
+                    <div className="text-[9px] font-black uppercase tracking-widest text-brand-dark/30">Chapter {item.chapter}</div>
+                    <div className="font-medium text-sm truncate">{item.label}</div>
+                  </div>
+                  {visitedSections.has(item.id) && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-brand-secondary flex-shrink-0" />
+                  )}
+                </button>
+              ))}
+              {navSearchResults.length === 0 && (
+                <p className="px-4 py-6 text-sm text-brand-dark/40 italic">No topics match "{navQuery}".</p>
+              )}
+            </div>
+            ) : (
+            <>
             <div className="px-6 mb-4">
               <div className="bg-brand-muted/30 p-2 rounded-2xl border border-brand-primary/5">
                 <button
@@ -755,6 +1232,8 @@ export default function App() {
                 );
               })}
             </nav>
+            </>
+            )}
           </motion.aside>
         )}
       </AnimatePresence>
@@ -767,15 +1246,38 @@ export default function App() {
               title="The Alphabet" 
               description="Click any character to view its deep mastery info. High tone (warm) vs Low tone (cool)."
             >
+              <div className="flex flex-wrap items-center gap-2 mb-8">
+                {(['All', 'High', 'Low'] as const).map(t => {
+                  const count = t === 'All' ? CONSONANTS.length : CONSONANTS.filter(c => c.tone.startsWith(t)).length;
+                  const isActive = toneFilter === t;
+                  return (
+                    <button
+                      key={t}
+                      onClick={() => setToneFilter(t)}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
+                        isActive
+                          ? t === 'Low'
+                            ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200'
+                            : 'bg-brand-primary text-white shadow-lg shadow-orange-200'
+                          : 'bg-white text-brand-dark/50 border border-orange-100 hover:border-brand-primary/30'
+                      }`}
+                    >
+                      {t === 'All' ? 'All tones' : `${t} tone`}
+                      <span className={`px-1.5 py-0.5 rounded-md text-[10px] ${isActive ? 'bg-white/20' : 'bg-brand-muted/40'}`}>{count}</span>
+                    </button>
+                  );
+                })}
+              </div>
               <motion.div
                 variants={gridContainer}
                 initial="hidden"
                 animate="show"
                 className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-6"
               >
-                {CONSONANTS.map((c, idx) => (
+                {CONSONANTS.filter(c => toneFilter === 'All' || c.tone.startsWith(toneFilter)).map((c) => (
                   <motion.div
-                    key={idx}
+                    key={c.tib}
+                    layout
                     variants={gridItem}
                     whileHover={{ scale: 1.07, y: -6 }}
                     whileTap={{ scale: 0.95 }}
@@ -2242,19 +2744,9 @@ export default function App() {
               <div className="space-y-12">
                  <div className="bg-brand-dark rounded-[3rem] p-10 text-white relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-64 h-64 bg-brand-primary/5 -mr-16 -mt-16 rounded-full blur-3xl pointer-events-none" />
-                    <h3 className="text-xl font-bold mb-8">1st Person Tense Formulas</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {CH5_FIRST_PERSON_TENSES.map((t, i) => (
-                        <div key={i} className="p-6 bg-white/5 rounded-3xl border border-white/5 hover:bg-white/10 transition-all">
-                          <span className="text-xs font-black uppercase tracking-widest text-brand-primary mb-3 block">{t.tense}</span>
-                          <div className="tibetan-text text-2xl text-white mb-4">{t.structure}</div>
-                          <div className="flex items-center gap-2 text-[10px] text-white/40 uppercase font-bold">
-                            <span className="px-2 py-0.5 bg-brand-primary/10 text-brand-primary rounded font-black">NEG</span>
-                            <span>{t.neg}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                    <h3 className="text-xl font-bold mb-2">1st Person Tense Navigator</h3>
+                    <p className="text-white/50 text-sm mb-8">Tap a point on the timeline to see how the verb ending changes from past to future.</p>
+                    <TenseTimeline items={CH5_FIRST_PERSON_TENSES} />
                  </div>
 
                  <div className="space-y-8">
@@ -2351,26 +2843,18 @@ export default function App() {
           {activeSection === 'verb_tenses_others' && (
             <SectionWrapper title="Others (2nd & 3rd Person) & Evidentiality" description="Verbs change based on whether you witnessed the action or are making an assumption.">
               <div className="space-y-12">
-                 <div className="bg-white p-8 rounded-[3rem] border border-orange-50 shadow-sm">
-                    <h3 className="text-xl font-bold mb-6 text-brand-dark">Tense & Evidentiality Formulas</h3>
-                    <HScrollArea fadeFromClass="from-white">
-                      <table className="w-full text-left">
-                        <thead>
-                          <tr className="bg-brand-dark text-white uppercase text-[10px] font-black tracking-widest">
-                            <th className="px-6 py-4">Tense / Evidentiality</th>
-                            <th className="px-6 py-4 text-brand-primary">Structure</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-orange-50">
-                          {CH5_OTHERS_TENSES.map((t, i) => (
-                            <tr key={i} className="hover:bg-brand-muted/5">
-                              <td className="px-6 py-4 font-bold text-brand-dark/60">{t.tense}</td>
-                              <td className="px-6 py-4 tibetan-text text-2xl text-brand-primary">{t.structure}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </HScrollArea>
+                 <div className="bg-brand-dark rounded-[3rem] p-10 text-white relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-brand-primary/5 -mr-16 -mt-16 rounded-full blur-3xl pointer-events-none" />
+                    <h3 className="text-xl font-bold mb-2">Tense & Evidentiality Navigator</h3>
+                    <p className="text-white/50 text-sm mb-8">Tap a point on the timeline — note how witnessed and assumed knowledge use different endings.</p>
+                    <TenseTimeline items={CH5_OTHERS_TENSES} />
+                    <button
+                      onClick={() => goToSection('evidentiality')}
+                      className="mt-6 flex items-center gap-2 text-xs font-black uppercase tracking-widest text-brand-secondary hover:text-white transition-colors group"
+                    >
+                      Deep dive: 9.1 Evidentiality
+                      <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    </button>
                  </div>
 
                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
@@ -3520,7 +4004,8 @@ export default function App() {
           {activeSection === 'evidentiality' && (
             <SectionWrapper title="9.1 Evidentiality: Discovery, Hearsay, Presumption & Refutation" description="Nuance markers that clarify how the speaker came to know the information.">
                <div className="space-y-16">
-                  {['Discovery', 'Hearsay', 'Presumption', 'Refutation/Assertion'].map(cat => (
+                  <EvidentialitySpectrum active={eviFocus} onSelect={setEviFocus} />
+                  {['Discovery', 'Hearsay', 'Presumption', 'Refutation/Assertion'].filter(cat => !eviFocus || eviFocus === cat).map(cat => (
                      <div key={cat} className="space-y-6">
                         <h3 className="text-xl font-black uppercase tracking-[0.2em] text-brand-dark/40 px-4 flex items-center gap-4">
                            <span className="w-8 h-px bg-brand-primary/20"></span>
