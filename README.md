@@ -1,20 +1,36 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Tibetan Treasury — Grammar Vol. I
 
-# Run and deploy your AI Studio app
+An interactive study companion for Standard Tibetan grammar, inspired by Gen
+Dawa's teachings. Nine chapters cover the alphabet and orthography, nouns and
+particles, sentence structure, adjectives and numbers, the verb system and
+evidentiality, imperatives and requests, modality, complex syntax, and
+idiomatic nuance — with tap-to-reveal quizzes, reading practice, a syllable
+builder, and cross-linked topics throughout.
 
-This contains everything you need to run your app locally.
+## Development
 
-View your app in AI Studio: https://ai.studio/apps/689c672c-7595-4086-9cd2-c3839a220be9
+**Prerequisites:** Node.js 20+
 
-## Run Locally
+```bash
+npm install    # install dependencies
+npm run dev    # start the dev server on http://localhost:3000
+npm run lint   # type-check (tsc --noEmit)
+npm run build  # build the single-file bundle into docs/
+```
 
-**Prerequisites:**  Node.js
+## Architecture
 
+- **Vite + React 19 + Tailwind v4** (`@tailwindcss/vite`), animations via
+  [`motion`](https://motion.dev), icons via `lucide-react`.
+- The whole app lives in [`src/App.tsx`](src/App.tsx); all lesson content is
+  data in [`src/constants.ts`](src/constants.ts).
+- `vite-plugin-singlefile` inlines everything into **one HTML file** at
+  `docs/index.html`, which GitHub Pages serves directly.
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## Deployment
+
+`docs/index.html` is a **generated artifact — never edit or commit it
+manually**. The [`Build & Deploy` workflow](.github/workflows/deploy.yml)
+rebuilds and commits it automatically on every push to `main`. After building
+locally to verify changes, discard the rebuilt file with
+`git checkout -- docs/index.html` before committing.

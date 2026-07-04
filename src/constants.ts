@@ -1368,6 +1368,18 @@ export const CHAPTER_HINTS: Record<number, { title: string, desc: string }> = {
   6: {
     title: "Intentionality",
     desc: "The choice of auxiliary ('yin' vs 're') in commands often depends on whether the action is voluntary."
+  },
+  7: {
+    title: "Modal Auxiliaries",
+    desc: "Wants, plans, and duties all hang off the verb as auxiliaries — master དགོས་ and its relatives and the whole chapter unlocks."
+  },
+  8: {
+    title: "Clause Chaining",
+    desc: "Tibetan builds complex sentences by chaining clauses with connective particles rather than separate conjunction words."
+  },
+  9: {
+    title: "Nuance Markers",
+    desc: "Evidential markers tell your listener how you know something — leaving them out is grammatical, but native speakers will notice."
   }
 };
 

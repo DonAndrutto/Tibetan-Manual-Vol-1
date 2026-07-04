@@ -3,10 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, createContext, useContext } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  Book, 
+import {
+  Book,
   Type, 
   Sparkles, 
   GraduationCap, 
@@ -160,6 +160,115 @@ interface MasteryInfo {
   type?: string;
   vocab?: string[];
 }
+
+type Consonant = (typeof CONSONANTS)[number];
+type Vowel = (typeof VOWELS)[number];
+
+interface NavItem {
+  id: Section;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  chapter: number;
+}
+
+const navItems: NavItem[] = [
+  { id: 'consonants', label: '30 Consonants', icon: Type, chapter: 1 },
+  { id: 'vowels', label: 'The 4 Vowels', icon: Music, chapter: 1 },
+  { id: 'subscripts', label: 'Subscripts', icon: ChevronRight, chapter: 1 },
+  { id: 'superscripts', label: 'Superscripts', icon: GraduationCap, chapter: 1 },
+  { id: 'orthography', label: 'Orthography', icon: Info, chapter: 1 },
+  { id: 'reading', label: 'Reading Practice', icon: Scroll, chapter: 1 },
+  { id: 'quiz_ch1', label: 'Chapter 1 Quiz', icon: HelpCircle, chapter: 1 },
+  { id: 'nouns', label: 'Nouns', icon: Library, chapter: 2 },
+  { id: 'pronouns', label: 'Pronouns', icon: Users, chapter: 2 },
+  { id: 'particles', label: 'Particles', icon: LinkIcon, chapter: 2 },
+  { id: 'quiz_ch2', label: 'Chapter 2 Quiz', icon: HelpCircle, chapter: 2 },
+  { id: 'equational_verbs', label: 'Equational Verbs', icon: Zap, chapter: 3 },
+  { id: 'existential_verbs', label: 'Location & Existence', icon: Compass, chapter: 3 },
+  { id: 'possession', label: 'Possession', icon: Heart, chapter: 3 },
+  { id: 'questions', label: 'Question Formats', icon: MessageCircle, chapter: 3 },
+  { id: 'quiz_ch3', label: 'Chapter 3 Quiz', icon: HelpCircle, chapter: 3 },
+  { id: 'adjectives', label: 'Adjectives & Comparison', icon: Sparkles, chapter: 4 },
+  { id: 'numbers', label: 'Numbers & Quantifiers', icon: Zap, chapter: 4 },
+  { id: 'time', label: 'Time & Dates', icon: Compass, chapter: 4 },
+  { id: 'quiz_ch4', label: 'Chapter 4 Quiz', icon: HelpCircle, chapter: 4 },
+  { id: 'verbs_intro', label: 'Verb Basics', icon: Zap, chapter: 5 },
+  { id: 'verb_tenses_1st', label: '1st Person Tenses', icon: Heart, chapter: 5 },
+  { id: 'verb_tenses_others', label: 'Others Tenses', icon: Users, chapter: 5 },
+  { id: 'verb_advanced', label: 'Advanced Aspects', icon: Sparkles, chapter: 5 },
+  { id: 'verb_involuntary', label: 'Involuntary Verbs', icon: Wind, chapter: 5 },
+  { id: 'verb_interrogative', label: 'Interrogatives', icon: MessageCircle, chapter: 5 },
+  { id: 'verb_negative', label: 'Negatives', icon: X, chapter: 5 },
+  { id: 'verb_passive', label: 'Passive Voice', icon: Scroll, chapter: 5 },
+  { id: 'quiz_ch5', label: 'Chapter 5 Quiz', icon: HelpCircle, chapter: 5 },
+  { id: 'imperatives', label: 'Imperatives', icon: Zap, chapter: 6 },
+  { id: 'requests', label: 'Polite Requests', icon: Heart, chapter: 6 },
+  { id: 'indirect_requests', label: 'Reporting Requests', icon: Scroll, chapter: 6 },
+  { id: 'offering', label: 'Offering/Shall I?', icon: Sparkles, chapter: 6 },
+  { id: 'suggestions', label: 'Suggestions/Let\'s', icon: Compass, chapter: 6 },
+  { id: 'causatives', label: 'Causatives', icon: Users, chapter: 6 },
+  { id: 'situations', label: 'Situations', icon: Compass, chapter: 6 },
+  { id: 'quiz_ch6', label: 'Chapter 6 Quiz', icon: HelpCircle, chapter: 6 },
+  { id: 'desires', label: 'Desires (Want)', icon: Heart, chapter: 7 },
+  { id: 'intentions', label: 'Intentions & Plans', icon: Compass, chapter: 7 },
+  { id: 'obligation', label: 'Obligation & Must', icon: Zap, chapter: 7 },
+  { id: 'prohibition', label: 'Prohibition', icon: X, chapter: 7 },
+  { id: 'permission', label: 'Permission (Can I?)', icon: Eye, chapter: 7 },
+  { id: 'hopes', label: 'Hopes & Wishes', icon: Wind, chapter: 7 },
+  { id: 'quiz_ch7', label: 'Chapter 7 Quiz', icon: HelpCircle, chapter: 7 },
+  { id: 'infinitives', label: '8.1 Infinitives & Gerunds', icon: Zap, chapter: 8 },
+  { id: 'temporal', label: '8.2 Temporal Clauses', icon: Clock, chapter: 8 },
+  { id: 'conditional', label: '8.3 Conditional Clauses', icon: HelpCircle, chapter: 8 },
+  { id: 'causal', label: '8.4 Causal Clauses', icon: LinkIcon, chapter: 8 },
+  { id: 'concessive', label: '8.5 Concessive Clauses', icon: Compass, chapter: 8 },
+  { id: 'purpose', label: '8.6 Purpose Clauses', icon: Compass, chapter: 8 },
+  { id: 'sequential', label: '8.7 Sequential Actions', icon: Compass, chapter: 8 },
+  { id: 'conjunctions', label: '8.8 Conjunctions', icon: Network, chapter: 8 },
+  { id: 'quiz_ch8', label: 'Chapter 8 Quiz', icon: HelpCircle, chapter: 8 },
+  { id: 'evidentiality', label: '9.1 Evidentiality', icon: Eye, chapter: 9 },
+  { id: 'pragmatics', label: '9.2 Pragmatics', icon: MessageCircle, chapter: 9 },
+  { id: 'idioms', label: '9.3 Idioms', icon: Zap, chapter: 9 },
+  { id: 'quotations', label: '9.4 Direct Speech', icon: BookOpen, chapter: 9 },
+  { id: 'quiz_ch9', label: 'Chapter 9 Quiz', icon: HelpCircle, chapter: 9 },
+];
+
+const isSection = (id: unknown): id is Section => navItems.some(i => i.id === id);
+
+// Progress is persisted so returning learners resume where they left off.
+const STORAGE_KEY = 'tibetan-treasury-progress-v1';
+interface StoredProgress { section?: string; visited?: string[] }
+const loadProgress = (): StoredProgress => {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null') ?? {};
+  } catch {
+    return {};
+  }
+};
+
+// Shared state/actions consumed by the module-level layout components below.
+// Keeping those components at module scope is load-bearing: a component
+// defined inside App() gets a new identity on every render, so React unmounts
+// and remounts its whole subtree on every state change — replaying entry
+// animations (visible flicker) and dropping child state.
+interface AppContextValue {
+  activeSection: Section;
+  activeChapter: number;
+  goToSection: (id: Section) => void;
+  selectedItem: MasteryInfo | null;
+  setSelectedItem: (item: MasteryInfo | null) => void;
+  revealedQuiz: Record<number, boolean>;
+  setRevealedQuiz: React.Dispatch<React.SetStateAction<Record<number, boolean>>>;
+  toggleQuiz: (index: number) => void;
+  revealAllReading: boolean;
+  openInBuilder: (consonant: Consonant) => void;
+}
+
+const AppContext = createContext<AppContextValue | null>(null);
+const useAppContext = (): AppContextValue => {
+  const ctx = useContext(AppContext);
+  if (!ctx) throw new Error('useAppContext must be used within AppContext.Provider');
+  return ctx;
+};
 
 const gridContainer = {
   hidden: { opacity: 0 },
@@ -524,25 +633,442 @@ const EvidentialitySpectrum = ({ active, onSelect }: { active: string | null; on
   </div>
 );
 
+const HScrollArea = ({ children, className = '', fadeFromClass = 'from-[#fdfcfb]', innerClassName = '' }: { children: React.ReactNode, className?: string, fadeFromClass?: string, innerClassName?: string }) => {
+  const ref = useRef<HTMLDivElement>(null);
+  const [overflow, setOverflow] = useState<'none' | 'right' | 'left' | 'both'>('none');
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const check = () => {
+      const maxScroll = el.scrollWidth - el.clientWidth;
+      if (maxScroll <= 2) { setOverflow('none'); return; }
+      const atStart = el.scrollLeft <= 2;
+      const atEnd = el.scrollLeft >= maxScroll - 2;
+      setOverflow(atStart ? 'right' : atEnd ? 'left' : 'both');
+    };
+    check();
+    el.addEventListener('scroll', check, { passive: true });
+    const ro = new ResizeObserver(check);
+    ro.observe(el);
+    return () => { el.removeEventListener('scroll', check); ro.disconnect(); };
+  }, [children]);
+  const showRight = overflow === 'right' || overflow === 'both';
+  const showLeft = overflow === 'left' || overflow === 'both';
+  return (
+    <div className={`relative ${className}`}>
+      <div ref={ref} className={`overflow-x-auto ${innerClassName}`}>{children}</div>
+      <div className={`pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l ${fadeFromClass} to-transparent transition-opacity ${showRight ? 'opacity-90' : 'opacity-0'}`} />
+      <div className={`pointer-events-none absolute inset-y-0 left-0 w-10 bg-gradient-to-r ${fadeFromClass} to-transparent transition-opacity ${showLeft ? 'opacity-100' : 'opacity-0'}`} />
+      <div className={`pointer-events-none absolute top-1/2 right-1 -translate-y-1/2 transition-opacity ${showRight ? 'opacity-100' : 'opacity-0'}`}>
+        <ChevronRight className="w-4 h-4 text-brand-primary/60" />
+      </div>
+    </div>
+  );
+};
+
+const SectionWrapper = ({ children, title, description }: { children: React.ReactNode, title: string, description?: string }) => {
+  const { activeSection, activeChapter, goToSection } = useAppContext();
+  const currentIdx = navItems.findIndex(i => i.id === activeSection);
+  const prevItem = currentIdx > 0 ? navItems[currentIdx - 1] : undefined;
+  const nextItem = currentIdx >= 0 ? navItems[currentIdx + 1] : undefined;
+  const hint = CHAPTER_HINTS[activeChapter];
+  const relatedItems = (RELATED_TOPICS[activeSection] ?? [])
+    .map(r => ({ note: r.note, item: navItems.find(i => i.id === r.id) }))
+    .filter((r): r is { note: string; item: NavItem } => !!r.item);
+  return (
+    <motion.div
+      key={activeSection}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      transition={{ duration: 0.3 }}
+      className="max-w-6xl mx-auto p-4 md:p-8"
+    >
+      <div className="mb-8">
+        <div className="flex items-center gap-2 mb-3 text-brand-secondary/50 text-[10px] uppercase tracking-[0.3em] font-black">
+          <div className="h-px w-8 bg-current" />
+          <span>Chapter {activeChapter}</span>
+          <div className="h-px w-8 bg-current" />
+        </div>
+        <h2 className="text-3xl font-bold text-brand-dark mb-2 tracking-tight">{title}</h2>
+        {description && <p className="text-brand-dark/70 font-medium">{description}</p>}
+      </div>
+      {children}
+      <div className="mt-16 pt-8 border-t border-orange-100 space-y-6">
+        {relatedItems.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-4">
+              <Network className="w-4 h-4 text-brand-primary" />
+              <span className="text-xs font-semibold text-brand-dark uppercase tracking-wider">Related Topics</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {relatedItems.map(({ item, note }) => (
+                <motion.button
+                  key={item.id}
+                  whileHover={{ y: -3 }}
+                  onClick={() => goToSection(item.id)}
+                  className="text-left p-5 bg-white rounded-2xl border border-orange-100 shadow-sm hover:border-brand-primary/40 hover:shadow-md transition-all group"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[9px] font-black uppercase tracking-widest text-brand-primary/50">Chapter {item.chapter}</span>
+                    <ChevronRight className="w-4 h-4 text-brand-primary/30 group-hover:text-brand-primary group-hover:translate-x-0.5 transition-all" />
+                  </div>
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <item.icon className="w-4 h-4 text-brand-primary/60 flex-shrink-0" />
+                    <span className="font-bold text-sm text-brand-dark">{item.label}</span>
+                  </div>
+                  <p className="text-xs text-brand-dark/50 leading-snug">{note}</p>
+                </motion.button>
+              ))}
+            </div>
+          </div>
+        )}
+        {hint && (
+          <div className="bg-orange-50/60 border border-orange-100 rounded-2xl p-5">
+            <div className="flex items-center gap-2 mb-2">
+              <Sparkles className="w-4 h-4 text-brand-secondary" />
+              <span className="text-xs font-semibold text-brand-dark uppercase tracking-wider">{hint.title}</span>
+            </div>
+            <p className="text-sm text-brand-dark/70 leading-relaxed italic">{hint.desc}</p>
+          </div>
+        )}
+        {(prevItem || nextItem) && (
+          <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            {prevItem ? (
+              <button
+                onClick={() => goToSection(prevItem.id)}
+                className="flex items-center justify-between sm:justify-start gap-4 px-6 py-4 rounded-2xl bg-white border border-orange-100 text-brand-dark/70 font-semibold hover:text-brand-primary hover:border-brand-primary/30 transition-all group"
+              >
+                <ChevronRight className="w-5 h-5 rotate-180 group-hover:-translate-x-1 transition-transform" />
+                <div className="text-right sm:text-left">
+                  <div className="text-[10px] uppercase tracking-widest font-black opacity-60">Previous topic</div>
+                  <div className="text-sm">{prevItem.label}</div>
+                </div>
+              </button>
+            ) : <span className="hidden sm:block" />}
+            {nextItem && (
+              <button
+                onClick={() => goToSection(nextItem.id)}
+                className="flex items-center justify-between gap-4 px-6 py-4 rounded-2xl bg-brand-primary text-white font-semibold shadow-lg shadow-orange-200 hover:shadow-xl hover:bg-brand-primary/90 transition-all group"
+              >
+                <div className="text-left">
+                  <div className="text-[10px] uppercase tracking-widest font-black opacity-70">Next topic</div>
+                  <div className="text-sm">{nextItem.label}</div>
+                </div>
+                <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+};
+
+const MasteryModal = () => {
+  const { selectedItem, setSelectedItem, openInBuilder } = useAppContext();
+  // Long compound nouns overflow the card at the display size used for single
+  // glyphs, so scale the Tibetan down as the string grows.
+  const tibSizeClass = !selectedItem
+    ? ''
+    : selectedItem.tib.length > 12
+      ? 'text-4xl sm:text-5xl md:text-6xl'
+      : selectedItem.tib.length > 6
+        ? 'text-5xl sm:text-6xl md:text-7xl'
+        : 'text-5xl sm:text-7xl md:text-[8rem]';
+  const consonant = selectedItem ? CONSONANTS.find(c => c.tib === selectedItem.tib) : undefined;
+  return (
+    <AnimatePresence>
+      {selectedItem && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={selectedItem.eng}
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-brand-dark/60 backdrop-blur-md"
+          onClick={() => setSelectedItem(null)}
+        >
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0, y: 40 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.8, opacity: 0, y: 40 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            onClick={(e) => e.stopPropagation()}
+            className="relative bg-[#f5f5f0] w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-[3rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.3)] border border-white/20"
+          >
+            <div className="p-12 flex flex-col items-center text-center">
+              <div className="relative group max-w-full">
+                <div className="absolute inset-0 bg-brand-primary/5 blur-3xl rounded-full group-hover:bg-brand-primary/10 transition-all" />
+                <span className={`relative tibetan-text ${tibSizeClass} text-brand-dark leading-normal mb-4 select-none drop-shadow-xl block break-words`}>
+                  {selectedItem.tib}
+                </span>
+              </div>
+
+              <div className="space-y-2 mb-10 max-w-full">
+                <h3 className="text-3xl sm:text-4xl md:text-5xl font-black text-brand-dark uppercase tracking-tight break-words">
+                  {selectedItem.eng}
+                </h3>
+                {selectedItem.tone && (
+                  <div className={`text-sm font-bold uppercase tracking-[0.2em] px-4 py-1.5 rounded-full inline-block ${
+                    selectedItem.tone.includes('Low') ? 'bg-indigo-100 text-indigo-700' : 'bg-brand-muted text-brand-primary'
+                  }`}>
+                    {selectedItem.tone} Tone
+                  </div>
+                )}
+              </div>
+
+              {consonant && (
+                <button
+                  onClick={() => openInBuilder(consonant)}
+                  className="mb-10 flex items-center gap-3 px-6 py-3 bg-brand-dark text-white rounded-2xl font-bold text-sm shadow-lg hover:bg-brand-primary transition-colors group"
+                >
+                  <Settings2 className="w-4 h-4 text-brand-secondary" />
+                  Try it in the Syllable Builder
+                  <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </button>
+              )}
+
+              {selectedItem.vocab && selectedItem.vocab.length > 0 && (
+                <div className="w-full">
+                  <div className="flex items-center justify-center gap-4 mb-6 text-brand-dark/20 uppercase tracking-[0.3em] text-[10px] font-black">
+                    <div className="h-px flex-1 bg-current" />
+                    <span>Linguistic Context</span>
+                    <div className="h-px flex-1 bg-current" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    {selectedItem.vocab.map((v, i) => (
+                      <div key={i} className="px-6 py-4 bg-white/60 rounded-3xl text-brand-dark border border-brand-muted/20 text-sm font-bold italic shadow-sm">
+                        {v}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <button
+              onClick={() => setSelectedItem(null)}
+              aria-label="Close"
+              className="absolute top-8 right-8 p-3 rounded-full hover:bg-black/5 transition-all active:scale-95"
+            >
+              <X className="w-8 h-8 text-brand-dark/20" />
+            </button>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+  );
+};
+
+const ReadingWord = ({ word, english }: { word: string; english: string }) => {
+  const { revealAllReading } = useAppContext();
+  const [showEnglish, setShowEnglish] = useState(false);
+  const isRevealed = showEnglish || revealAllReading;
+  return (
+    <div
+      className="inline-block relative cursor-help select-none"
+      onClick={(e) => {
+        e.stopPropagation();
+        setShowEnglish(!showEnglish);
+      }}
+    >
+      <motion.span
+        animate={{ scale: isRevealed ? 1.1 : 1 }}
+        className={`tibetan-text text-4xl block cursor-pointer transition-all duration-300 ${
+          isRevealed ? 'text-brand-primary' : 'text-brand-dark hover:text-brand-primary/60'
+        }`}
+      >
+        {word}
+      </motion.span>
+      <AnimatePresence>
+        {isRevealed && (
+          <motion.div
+            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 5, scale: 0.95 }}
+            className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-brand-dark text-white text-xs font-bold rounded-xl whitespace-nowrap z-10 shadow-xl"
+          >
+            {english}
+            <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-brand-dark" />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+interface QuizItem { type: string; eng: string; tib: string; }
+const QuizSection = ({ items, baseIndex }: { items: QuizItem[], baseIndex: number }) => {
+  const { activeChapter, goToSection, revealedQuiz, setRevealedQuiz, toggleQuiz } = useAppContext();
+  const total = items.length;
+  const revealedCount = items.filter((_, i) => revealedQuiz[baseIndex + i]).length;
+  const allRevealed = revealedCount === total;
+
+  const revealAll = () => {
+    const next: Record<number, boolean> = { ...revealedQuiz };
+    items.forEach((_, i) => { next[baseIndex + i] = true; });
+    setRevealedQuiz(next);
+  };
+  const resetAll = () => {
+    const next: Record<number, boolean> = { ...revealedQuiz };
+    items.forEach((_, i) => { delete next[baseIndex + i]; });
+    setRevealedQuiz(next);
+  };
+
+  const reviewItems = navItems.filter(i => i.chapter === activeChapter && !i.id.startsWith('quiz'));
+
+  return (
+    <div>
+      {/* Review links for this chapter's topics */}
+      {reviewItems.length > 0 && (
+        <div className="mb-6 bg-white rounded-2xl px-6 py-5 border border-orange-50 shadow-sm">
+          <div className="flex items-center gap-2 mb-3">
+            <BookOpen className="w-4 h-4 text-brand-primary" />
+            <span className="text-[10px] font-black uppercase tracking-widest text-brand-dark/40">Review before you start</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {reviewItems.map(item => (
+              <button
+                key={item.id}
+                onClick={() => goToSection(item.id)}
+                className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 bg-brand-muted/30 text-brand-dark rounded-lg hover:bg-brand-primary hover:text-white transition-colors"
+              >
+                <item.icon className="w-3.5 h-3.5" />
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Score header */}
+      <div className="flex items-center justify-between mb-6 bg-white rounded-2xl px-6 py-4 border border-orange-50 shadow-sm">
+        <div className="flex items-center gap-4">
+          <div className="text-sm font-black text-brand-dark">
+            <span className="text-brand-primary text-lg">{revealedCount}</span>
+            <span className="text-brand-dark/40"> / {total} revealed</span>
+          </div>
+          <div className="w-32 chapter-progress-track">
+            <motion.div
+              className="chapter-progress-fill"
+              animate={{ width: `${(revealedCount / total) * 100}%` }}
+              transition={{ duration: 0.4 }}
+            />
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={revealAll}
+            disabled={allRevealed}
+            className="text-[11px] font-black uppercase tracking-widest px-4 py-2 bg-brand-primary text-white rounded-xl disabled:opacity-30 hover:bg-brand-dark transition-colors"
+          >
+            Reveal All
+          </button>
+          <button
+            onClick={resetAll}
+            className="text-[11px] font-black uppercase tracking-widest px-4 py-2 bg-brand-muted/40 text-brand-dark rounded-xl hover:bg-brand-muted transition-colors"
+          >
+            Reset
+          </button>
+        </div>
+      </div>
+
+      <AnimatePresence>
+        {allRevealed && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="mb-6 p-5 rounded-2xl text-center shimmer-gold font-black text-lg border border-brand-secondary/30 bg-brand-secondary/5"
+          >
+            ✦ All answers revealed — excellent work! ✦
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <motion.div
+        variants={gridContainer}
+        initial="hidden"
+        animate="show"
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+      >
+        {items.map((quiz, i) => {
+          const isRevealed = !!revealedQuiz[baseIndex + i];
+          return (
+            <motion.div
+              key={i}
+              variants={gridItem}
+              onClick={() => toggleQuiz(baseIndex + i)}
+              className={`cursor-pointer bg-brand-dark p-8 rounded-[2.5rem] border shadow-2xl hover:scale-[1.02] transition-all relative overflow-hidden ${isRevealed ? 'border-green-500/20' : 'border-white/5'}`}
+            >
+              {isRevealed && (
+                <div className="absolute top-4 left-4 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
+                  <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4l3 3 5-6" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                </div>
+              )}
+              <div className="absolute top-0 right-0 w-16 h-16 bg-white/5 rounded-bl-full flex items-center justify-center font-black text-white/10">
+                {i + 1}
+              </div>
+              <div className="mb-6">
+                <p className="text-[10px] font-black uppercase tracking-widest text-brand-secondary/40 mb-2">{quiz.type}</p>
+                <p className="text-xl font-bold text-white/90 leading-tight">{quiz.eng}</p>
+              </div>
+              <div
+                className={`tibetan-text text-3xl text-brand-secondary transition-all duration-700 bg-white/5 p-6 rounded-2xl text-center shadow-inner ${!isRevealed ? 'quiz-hint-pulse' : ''}`}
+                style={{ filter: isRevealed ? 'blur(0px)' : 'blur(15px)', opacity: isRevealed ? 1 : 0.05 }}
+              >
+                {quiz.tib}
+              </div>
+              {!isRevealed && (
+                <p className="text-center text-[10px] text-white/20 font-bold uppercase tracking-widest mt-3">tap to reveal</p>
+              )}
+            </motion.div>
+          );
+        })}
+      </motion.div>
+    </div>
+  );
+};
+
 export default function App() {
-  const [activeSection, setActiveSection] = useState<Section>('consonants');
-  const [activeChapter, setActiveChapter] = useState(1);
+  const [activeSection, setActiveSection] = useState<Section>(() => {
+    const { section } = loadProgress();
+    return isSection(section) ? section : 'consonants';
+  });
+  const [activeChapter, setActiveChapter] = useState(() => {
+    const { section } = loadProgress();
+    return (isSection(section) && navItems.find(i => i.id === section)?.chapter) || 1;
+  });
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<MasteryInfo | null>(null);
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
   const [revealedQuiz, setRevealedQuiz] = useState<Record<number, boolean>>({});
-  const [visitedSections, setVisitedSections] = useState<Set<Section>>(new Set(['consonants']));
+  const [visitedSections, setVisitedSections] = useState<Set<Section>>(() => {
+    const { section, visited } = loadProgress();
+    const set = new Set<Section>((visited ?? []).filter(isSection));
+    set.add(isSection(section) ? section : 'consonants');
+    return set;
+  });
   const [revealAllReading, setRevealAllReading] = useState(false);
   const [chaptersCollapsed, setChaptersCollapsed] = useState(false);
   const [navQuery, setNavQuery] = useState('');
   const [toneFilter, setToneFilter] = useState<'All' | 'High' | 'Low'>('All');
   const [eviFocus, setEviFocus] = useState<string | null>(null);
+  // Reactive desktop breakpoint — reading window.innerWidth during render is
+  // not reactive, so a mobile→desktop resize would leave the sidebar unmounted.
+  const [isDesktop, setIsDesktop] = useState(() => typeof window !== 'undefined' && window.matchMedia('(min-width: 768px)').matches);
   const mainRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
-    document.body.style.overflow = isSidebarOpen ? 'hidden' : '';
+    const mq = window.matchMedia('(min-width: 768px)');
+    const onChange = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+
+  useEffect(() => {
+    document.body.style.overflow = isSidebarOpen || selectedItem ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
-  }, [isSidebarOpen]);
+  }, [isSidebarOpen, selectedItem]);
 
   // Edge swipe from left to open sidebar (mobile only)
   useEffect(() => {
@@ -553,7 +1079,7 @@ export default function App() {
     const EDGE = 24;
     const THRESHOLD = 60;
     const onStart = (e: TouchEvent) => {
-      if (window.innerWidth >= 768 || isSidebarOpen) return;
+      if (isDesktop || isSidebarOpen) return;
       const t = e.touches[0];
       if (t.clientX <= EDGE) {
         startX = t.clientX;
@@ -580,203 +1106,39 @@ export default function App() {
       document.removeEventListener('touchmove', onMove);
       document.removeEventListener('touchend', onEnd);
     };
-  }, [isSidebarOpen]);
+  }, [isSidebarOpen, isDesktop]);
 
-  const navigateTo = (section: Section) => {
+  const navigateTo = useCallback((section: Section) => {
     setActiveSection(section);
     setVisitedSections(prev => new Set([...prev, section]));
     setRevealAllReading(false);
-  };
+  }, []);
 
   const toggleCategory = (category: string) => {
     setExpandedCategories(prev => ({ ...prev, [category]: !prev[category] }));
   };
 
-  const toggleQuiz = (index: number) => {
+  const toggleQuiz = useCallback((index: number) => {
     setRevealedQuiz(prev => ({ ...prev, [index]: !prev[index] }));
-  };
+  }, []);
 
   // Syllable Builder State
-  const [builderBase, setBuilderBase] = useState(CONSONANTS[0]);
-  const [builderVowel, setBuilderVowel] = useState<any>(null);
+  const [builderBase, setBuilderBase] = useState<Consonant>(CONSONANTS[0]);
+  const [builderVowel, setBuilderVowel] = useState<Vowel | null>(null);
 
   const composedSyllable = builderBase.tib.replace('་', '') + (builderVowel?.symbol || '');
+  // Rough romanisation of the built syllable: swap the inherent "a" for the
+  // selected vowel sound (ka + ི → ki).
+  const composedRoman = builderVowel ? builderBase.eng.replace(/a$/, '') + builderVowel.sound : builderBase.eng;
 
-  const HScrollArea = ({ children, className = '', fadeFromClass = 'from-[#fdfcfb]', innerClassName = '' }: { children: React.ReactNode, className?: string, fadeFromClass?: string, innerClassName?: string }) => {
-    const ref = useRef<HTMLDivElement>(null);
-    const [overflow, setOverflow] = useState<'none' | 'right' | 'left' | 'both'>('none');
-    useEffect(() => {
-      const el = ref.current;
-      if (!el) return;
-      const check = () => {
-        const maxScroll = el.scrollWidth - el.clientWidth;
-        if (maxScroll <= 2) { setOverflow('none'); return; }
-        const atStart = el.scrollLeft <= 2;
-        const atEnd = el.scrollLeft >= maxScroll - 2;
-        setOverflow(atStart ? 'right' : atEnd ? 'left' : 'both');
-      };
-      check();
-      el.addEventListener('scroll', check, { passive: true });
-      const ro = new ResizeObserver(check);
-      ro.observe(el);
-      return () => { el.removeEventListener('scroll', check); ro.disconnect(); };
-    }, [children]);
-    const showRight = overflow === 'right' || overflow === 'both';
-    const showLeft = overflow === 'left' || overflow === 'both';
-    return (
-      <div className={`relative ${className}`}>
-        <div ref={ref} className={`overflow-x-auto ${innerClassName}`}>{children}</div>
-        <div className={`pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l ${fadeFromClass} to-transparent transition-opacity ${showRight ? 'opacity-90' : 'opacity-0'}`} />
-        <div className={`pointer-events-none absolute inset-y-0 left-0 w-10 bg-gradient-to-r ${fadeFromClass} to-transparent transition-opacity ${showLeft ? 'opacity-90' : 'opacity-0'}`} />
-        <div className={`pointer-events-none absolute top-1/2 right-1 -translate-y-1/2 transition-opacity ${showRight ? 'opacity-100' : 'opacity-0'}`}>
-          <ChevronRight className="w-4 h-4 text-brand-primary/60" />
-        </div>
-      </div>
-    );
-  };
-
-  const SectionWrapper = ({ children, title, description }: { children: React.ReactNode, title: string, description?: string }) => {
-    const currentIdx = navItems.findIndex(i => i.id === activeSection);
-    const nextItem = currentIdx >= 0 ? navItems[currentIdx + 1] : undefined;
-    const goToNext = () => { if (nextItem) goToSection(nextItem.id); };
-    const hint = CHAPTER_HINTS[activeChapter];
-    const relatedItems = (RELATED_TOPICS[activeSection] ?? [])
-      .map(r => ({ note: r.note, item: navItems.find(i => i.id === r.id) }))
-      .filter((r): r is { note: string; item: (typeof navItems)[number] } => !!r.item);
-    return (
-      <motion.div
-        key={activeSection}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -20 }}
-        transition={{ duration: 0.3 }}
-        className="max-w-6xl mx-auto p-4 md:p-8"
-      >
-        <div className="mb-8">
-          <div className="flex items-center gap-2 mb-3 text-brand-secondary/50 text-[10px] uppercase tracking-[0.3em] font-black">
-            <div className="h-px w-8 bg-current" />
-            <span>Chapter {activeChapter}</span>
-            <div className="h-px w-8 bg-current" />
-          </div>
-          <h2 className="text-3xl font-bold text-brand-dark mb-2 tracking-tight">{title}</h2>
-          {description && <p className="text-brand-dark/70 font-medium">{description}</p>}
-        </div>
-        {children}
-        <div className="mt-16 pt-8 border-t border-orange-100 space-y-6">
-          {relatedItems.length > 0 && (
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <Network className="w-4 h-4 text-brand-primary" />
-                <span className="text-xs font-semibold text-brand-dark uppercase tracking-wider">Related Topics</span>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {relatedItems.map(({ item, note }) => (
-                  <motion.button
-                    key={item.id}
-                    whileHover={{ y: -3 }}
-                    onClick={() => goToSection(item.id)}
-                    className="text-left p-5 bg-white rounded-2xl border border-orange-100 shadow-sm hover:border-brand-primary/40 hover:shadow-md transition-all group"
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-[9px] font-black uppercase tracking-widest text-brand-primary/50">Chapter {item.chapter}</span>
-                      <ChevronRight className="w-4 h-4 text-brand-primary/30 group-hover:text-brand-primary group-hover:translate-x-0.5 transition-all" />
-                    </div>
-                    <div className="flex items-center gap-2 mb-1.5">
-                      <item.icon className="w-4 h-4 text-brand-primary/60 flex-shrink-0" />
-                      <span className="font-bold text-sm text-brand-dark">{item.label}</span>
-                    </div>
-                    <p className="text-xs text-brand-dark/50 leading-snug">{note}</p>
-                  </motion.button>
-                ))}
-              </div>
-            </div>
-          )}
-          {hint && (
-            <div className="bg-orange-50/60 border border-orange-100 rounded-2xl p-5">
-              <div className="flex items-center gap-2 mb-2">
-                <Sparkles className="w-4 h-4 text-brand-secondary" />
-                <span className="text-xs font-semibold text-brand-dark uppercase tracking-wider">{hint.title}</span>
-              </div>
-              <p className="text-sm text-brand-dark/70 leading-relaxed italic">{hint.desc}</p>
-            </div>
-          )}
-          {nextItem && (
-            <button
-              onClick={goToNext}
-              className="w-full sm:w-auto sm:ml-auto flex items-center justify-between gap-4 px-6 py-4 rounded-2xl bg-brand-primary text-white font-semibold shadow-lg shadow-orange-200 hover:shadow-xl hover:bg-brand-primary/90 transition-all group"
-            >
-              <div className="text-left">
-                <div className="text-[10px] uppercase tracking-widest font-black opacity-70">Next topic</div>
-                <div className="text-sm">{nextItem.label}</div>
-              </div>
-              <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            </button>
-          )}
-        </div>
-      </motion.div>
-    );
-  };
-
-  const navItems: { id: Section; label: string; icon: any; chapter: number }[] = [
-    { id: 'consonants', label: '30 Consonants', icon: Type, chapter: 1 },
-    { id: 'vowels', label: 'The 4 Vowels', icon: Music, chapter: 1 },
-    { id: 'subscripts', label: 'Subscripts', icon: ChevronRight, chapter: 1 },
-    { id: 'superscripts', label: 'Superscripts', icon: GraduationCap, chapter: 1 },
-    { id: 'orthography', label: 'Orthography', icon: Info, chapter: 1 },
-    { id: 'reading', label: 'Reading Practice', icon: Scroll, chapter: 1 },
-    { id: 'quiz_ch1', label: 'Chapter 1 Quiz', icon: HelpCircle, chapter: 1 },
-    { id: 'nouns', label: 'Nouns', icon: Library, chapter: 2 },
-    { id: 'pronouns', label: 'Pronouns', icon: Users, chapter: 2 },
-    { id: 'particles', label: 'Particles', icon: LinkIcon, chapter: 2 },
-    { id: 'quiz_ch2', label: 'Chapter 2 Quiz', icon: HelpCircle, chapter: 2 },
-    { id: 'equational_verbs', label: 'Equational Verbs', icon: Zap, chapter: 3 },
-    { id: 'existential_verbs', label: 'Location & Existence', icon: Compass, chapter: 3 },
-    { id: 'possession', label: 'Possession', icon: Heart, chapter: 3 },
-    { id: 'questions', label: 'Question Formats', icon: MessageCircle, chapter: 3 },
-    { id: 'quiz_ch3', label: 'Chapter 3 Quiz', icon: HelpCircle, chapter: 3 },
-    { id: 'adjectives', label: 'Adjectives & Comparison', icon: Sparkles, chapter: 4 },
-    { id: 'numbers', label: 'Numbers & Quantifiers', icon: Zap, chapter: 4 },
-    { id: 'time', label: 'Time & Dates', icon: Compass, chapter: 4 },
-    { id: 'quiz_ch4', label: 'Chapter 4 Quiz', icon: HelpCircle, chapter: 4 },
-    { id: 'verbs_intro', label: 'Verb Basics', icon: Zap, chapter: 5 },
-    { id: 'verb_tenses_1st', label: '1st Person Tenses', icon: Heart, chapter: 5 },
-    { id: 'verb_tenses_others', label: 'Others Tenses', icon: Users, chapter: 5 },
-    { id: 'verb_advanced', label: 'Advanced Aspects', icon: Sparkles, chapter: 5 },
-    { id: 'verb_involuntary', label: 'Involuntary Verbs', icon: Wind, chapter: 5 },
-    { id: 'verb_interrogative', label: 'Interrogatives', icon: MessageCircle, chapter: 5 },
-    { id: 'verb_negative', label: 'Negatives', icon: X, chapter: 5 },
-    { id: 'verb_passive', label: 'Passive Voice', icon: Scroll, chapter: 5 },
-    { id: 'quiz_ch5', label: 'Chapter 5 Quiz', icon: HelpCircle, chapter: 5 },
-    { id: 'imperatives', label: 'Imperatives', icon: Zap, chapter: 6 },
-    { id: 'requests', label: 'Polite Requests', icon: Heart, chapter: 6 },
-    { id: 'indirect_requests', label: 'Reporting Requests', icon: Scroll, chapter: 6 },
-    { id: 'offering', label: 'Offering/Shall I?', icon: Sparkles, chapter: 6 },
-    { id: 'suggestions', label: 'Suggestions/Let\'s', icon: Compass, chapter: 6 },
-    { id: 'causatives', label: 'Causatives', icon: Users, chapter: 6 },
-    { id: 'situations', label: 'Situations', icon: Compass, chapter: 6 },
-    { id: 'quiz_ch6', label: 'Chapter 6 Quiz', icon: HelpCircle, chapter: 6 },
-    { id: 'desires', label: 'Desires (Want)', icon: Heart, chapter: 7 },
-    { id: 'intentions', label: 'Intentions & Plans', icon: Compass, chapter: 7 },
-    { id: 'obligation', label: 'Obligation & Must', icon: Zap, chapter: 7 },
-    { id: 'prohibition', label: 'Prohibition', icon: X, chapter: 7 },
-    { id: 'permission', label: 'Permission (Can I?)', icon: Eye, chapter: 7 },
-    { id: 'hopes', label: 'Hopes & Wishes', icon: Wind, chapter: 7 },
-    { id: 'quiz_ch7', label: 'Chapter 7 Quiz', icon: HelpCircle, chapter: 7 },
-    { id: 'infinitives', label: '8.1 Infinitives & Gerunds', icon: Zap, chapter: 8 },
-    { id: 'temporal', label: '8.2 Temporal Clauses', icon: Clock, chapter: 8 },
-    { id: 'conditional', label: '8.3 Conditional Clauses', icon: HelpCircle, chapter: 8 },
-    { id: 'causal', label: '8.4 Causal Clauses', icon: LinkIcon, chapter: 8 },
-    { id: 'concessive', label: '8.5 Concessive Clauses', icon: Compass, chapter: 8 },
-    { id: 'purpose', label: '8.6 Purpose Clauses', icon: Compass, chapter: 8 },
-    { id: 'sequential', label: '8.7 Sequential Actions', icon: Compass, chapter: 8 },
-    { id: 'conjunctions', label: '8.8 Conjunctions', icon: Network, chapter: 8 },
-    { id: 'quiz_ch8', label: 'Chapter 8 Quiz', icon: HelpCircle, chapter: 8 },
-    { id: 'evidentiality', label: '9.1 Evidentiality', icon: Eye, chapter: 9 },
-    { id: 'pragmatics', label: '9.2 Pragmatics', icon: MessageCircle, chapter: 9 },
-    { id: 'idioms', label: '9.3 Idioms', icon: Zap, chapter: 9 },
-    { id: 'quotations', label: '9.4 Direct Speech', icon: BookOpen, chapter: 9 },
-    { id: 'quiz_ch9', label: 'Chapter 9 Quiz', icon: HelpCircle, chapter: 9 },
-  ];
+  // Persist progress (resume where you left off on the next visit).
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ section: activeSection, visited: [...visitedSections] }));
+    } catch {
+      // Storage unavailable (private mode / quota) — progress just won't persist.
+    }
+  }, [activeSection, visitedSections]);
 
   const filteredNavItems = navItems.filter(item => item.chapter === activeChapter);
 
@@ -793,254 +1155,63 @@ export default function App() {
   };
 
   // Jump to any section, switching chapters if needed (used by related-topic
-  // cards, search results, quiz review chips, and the next-topic button).
-  const goToSection = (id: Section) => {
+  // cards, search results, quiz review chips, and the prev/next-topic buttons).
+  const goToSection = useCallback((id: Section) => {
     const item = navItems.find(i => i.id === id);
     if (!item) return;
-    if (item.chapter !== activeChapter) setActiveChapter(item.chapter);
+    setActiveChapter(item.chapter);
     navigateTo(id);
     requestAnimationFrame(() => {
       mainRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
       window.scrollTo({ top: 0, behavior: 'smooth' });
     });
-  };
+  }, [navigateTo]);
 
-  const MasteryModal = () => (
-    <AnimatePresence>
-      {selectedItem && (
-        <div 
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-brand-dark/60 backdrop-blur-md"
-          onClick={() => setSelectedItem(null)}
-        >
-          <motion.div
-            initial={{ scale: 0.8, opacity: 0, y: 40 }}
-            animate={{ scale: 1, opacity: 1, y: 0 }}
-            exit={{ scale: 0.8, opacity: 0, y: 40 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            onClick={(e) => e.stopPropagation()}
-            className="relative bg-[#f5f5f0] w-full max-w-lg rounded-[3rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.3)] overflow-hidden border border-white/20"
-          >
-            <div className="p-12 flex flex-col items-center text-center">
-              <div className="relative group">
-                <div className="absolute inset-0 bg-brand-primary/5 blur-3xl rounded-full group-hover:bg-brand-primary/10 transition-all" />
-                <span className="relative tibetan-text text-5xl sm:text-7xl md:text-[8rem] text-brand-dark leading-normal mb-4 select-none drop-shadow-xl block">
-                  {selectedItem.tib}
-                </span>
-              </div>
-              
-              <div className="space-y-2 mb-10">
-                <h3 className="text-5xl font-black text-brand-dark uppercase tracking-tight">
-                  {selectedItem.eng}
-                </h3>
-                {selectedItem.tone && (
-                  <div className={`text-sm font-bold uppercase tracking-[0.2em] px-4 py-1.5 rounded-full inline-block ${
-                    selectedItem.tone.includes('Low') ? 'bg-indigo-100 text-indigo-700' : 'bg-brand-muted text-brand-primary'
-                  }`}>
-                    {selectedItem.tone} Tone
-                  </div>
-                )}
-              </div>
+  // Cross-section shortcut: pick a consonant anywhere (e.g. the alphabet
+  // mastery modal) and continue with it in the vowels section's builder.
+  const openInBuilder = useCallback((consonant: Consonant) => {
+    setBuilderBase(consonant);
+    setSelectedItem(null);
+    goToSection('vowels');
+  }, [goToSection]);
 
-              {selectedItem.vocab && selectedItem.vocab.length > 0 && (
-                <div className="w-full">
-                  <div className="flex items-center justify-center gap-4 mb-6 text-brand-dark/20 uppercase tracking-[0.3em] text-[10px] font-black">
-                    <div className="h-px flex-1 bg-current" />
-                    <span>Linguistic Context</span>
-                    <div className="h-px flex-1 bg-current" />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    {selectedItem.vocab.map((v, i) => (
-                      <div key={i} className="px-6 py-4 bg-white/60 rounded-3xl text-brand-dark border border-brand-muted/20 text-sm font-bold italic shadow-sm">
-                        {v}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-            
-            <button 
-              onClick={() => setSelectedItem(null)}
-              className="absolute top-8 right-8 p-3 rounded-full hover:bg-black/5 transition-all active:scale-95"
-            >
-              <X className="w-8 h-8 text-brand-dark/20" />
-            </button>
-          </motion.div>
-        </div>
-      )}
-    </AnimatePresence>
-  );
-
-  const ReadingWord = ({ word, english }: { word: string; english: string; key?: React.Key }) => {
-    const [showEnglish, setShowEnglish] = useState(false);
-    const isRevealed = showEnglish || revealAllReading;
-    return (
-      <div
-        className="inline-block relative cursor-help select-none"
-        onClick={(e) => {
-          e.stopPropagation();
-          setShowEnglish(!showEnglish);
-        }}
-      >
-        <motion.span
-          animate={{ scale: isRevealed ? 1.1 : 1 }}
-          className={`tibetan-text text-4xl block cursor-pointer transition-all duration-300 ${
-            isRevealed ? 'text-brand-primary' : 'text-brand-dark hover:text-brand-primary/60'
-          }`}
-        >
-          {word}
-        </motion.span>
-        <AnimatePresence>
-          {isRevealed && (
-            <motion.div
-              initial={{ opacity: 0, y: 10, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 5, scale: 0.95 }}
-              className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-brand-dark text-white text-xs font-bold rounded-xl whitespace-nowrap z-10 shadow-xl"
-            >
-              {english}
-              <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-brand-dark" />
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-    );
-  };
-
-  interface QuizItem { type: string; eng: string; tib: string; }
-  const QuizSection = ({ items, baseIndex }: { items: QuizItem[], baseIndex: number }) => {
-    const total = items.length;
-    const revealedCount = items.filter((_, i) => revealedQuiz[baseIndex + i]).length;
-    const allRevealed = revealedCount === total;
-
-    const revealAll = () => {
-      const next: Record<number, boolean> = { ...revealedQuiz };
-      items.forEach((_, i) => { next[baseIndex + i] = true; });
-      setRevealedQuiz(next);
+  // Keyboard navigation: ← / → move between topics, Escape dismisses overlays.
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (selectedItem) setSelectedItem(null);
+        else if (isSidebarOpen) setIsSidebarOpen(false);
+        return;
+      }
+      if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey || selectedItem) return;
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return;
+      if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+        const idx = navItems.findIndex(i => i.id === activeSection);
+        const next = e.key === 'ArrowRight' ? navItems[idx + 1] : navItems[idx - 1];
+        if (next) goToSection(next.id);
+      }
     };
-    const resetAll = () => {
-      const next: Record<number, boolean> = { ...revealedQuiz };
-      items.forEach((_, i) => { delete next[baseIndex + i]; });
-      setRevealedQuiz(next);
-    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [activeSection, selectedItem, isSidebarOpen, goToSection]);
 
-    const reviewItems = navItems.filter(i => i.chapter === activeChapter && !i.id.startsWith('quiz'));
-
-    return (
-      <div>
-        {/* Review links for this chapter's topics */}
-        {reviewItems.length > 0 && (
-          <div className="mb-6 bg-white rounded-2xl px-6 py-5 border border-orange-50 shadow-sm">
-            <div className="flex items-center gap-2 mb-3">
-              <BookOpen className="w-4 h-4 text-brand-primary" />
-              <span className="text-[10px] font-black uppercase tracking-widest text-brand-dark/40">Review before you start</span>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {reviewItems.map(item => (
-                <button
-                  key={item.id}
-                  onClick={() => goToSection(item.id)}
-                  className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 bg-brand-muted/30 text-brand-dark rounded-lg hover:bg-brand-primary hover:text-white transition-colors"
-                >
-                  <item.icon className="w-3.5 h-3.5" />
-                  {item.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Score header */}
-        <div className="flex items-center justify-between mb-6 bg-white rounded-2xl px-6 py-4 border border-orange-50 shadow-sm">
-          <div className="flex items-center gap-4">
-            <div className="text-sm font-black text-brand-dark">
-              <span className="text-brand-primary text-lg">{revealedCount}</span>
-              <span className="text-brand-dark/40"> / {total} revealed</span>
-            </div>
-            <div className="w-32 chapter-progress-track">
-              <motion.div
-                className="chapter-progress-fill"
-                animate={{ width: `${(revealedCount / total) * 100}%` }}
-                transition={{ duration: 0.4 }}
-              />
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={revealAll}
-              disabled={allRevealed}
-              className="text-[11px] font-black uppercase tracking-widest px-4 py-2 bg-brand-primary text-white rounded-xl disabled:opacity-30 hover:bg-brand-dark transition-colors"
-            >
-              Reveal All
-            </button>
-            <button
-              onClick={resetAll}
-              className="text-[11px] font-black uppercase tracking-widest px-4 py-2 bg-brand-muted/40 text-brand-dark rounded-xl hover:bg-brand-muted transition-colors"
-            >
-              Reset
-            </button>
-          </div>
-        </div>
-
-        <AnimatePresence>
-          {allRevealed && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="mb-6 p-5 rounded-2xl text-center shimmer-gold font-black text-lg border border-brand-secondary/30 bg-brand-secondary/5"
-            >
-              ✦ All answers revealed — excellent work! ✦
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <motion.div
-          variants={gridContainer}
-          initial="hidden"
-          animate="show"
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
-        >
-          {items.map((quiz, i) => {
-            const isRevealed = !!revealedQuiz[baseIndex + i];
-            return (
-              <motion.div
-                key={i}
-                variants={gridItem}
-                onClick={() => toggleQuiz(baseIndex + i)}
-                className={`cursor-pointer bg-brand-dark p-8 rounded-[2.5rem] border shadow-2xl hover:scale-[1.02] transition-all relative overflow-hidden ${isRevealed ? 'border-green-500/20' : 'border-white/5'}`}
-              >
-                {isRevealed && (
-                  <div className="absolute top-4 left-4 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
-                    <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4l3 3 5-6" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                  </div>
-                )}
-                <div className="absolute top-0 right-0 w-16 h-16 bg-white/5 rounded-bl-full flex items-center justify-center font-black text-white/10">
-                  {i + 1}
-                </div>
-                <div className="mb-6">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-brand-secondary/40 mb-2">{quiz.type}</p>
-                  <p className="text-xl font-bold text-white/90 leading-tight">{quiz.eng}</p>
-                </div>
-                <div
-                  className={`tibetan-text text-3xl text-brand-secondary transition-all duration-700 bg-white/5 p-6 rounded-2xl text-center shadow-inner ${!isRevealed ? 'quiz-hint-pulse' : ''}`}
-                  style={{ filter: isRevealed ? 'blur(0px)' : 'blur(15px)', opacity: isRevealed ? 1 : 0.05 }}
-                >
-                  {quiz.tib}
-                </div>
-                {!isRevealed && (
-                  <p className="text-center text-[10px] text-white/20 font-bold uppercase tracking-widest mt-3">tap to reveal</p>
-                )}
-              </motion.div>
-            );
-          })}
-        </motion.div>
-      </div>
-    );
+  const contextValue: AppContextValue = {
+    activeSection,
+    activeChapter,
+    goToSection,
+    selectedItem,
+    setSelectedItem,
+    revealedQuiz,
+    setRevealedQuiz,
+    toggleQuiz,
+    revealAllReading,
+    openInBuilder,
   };
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row font-sans bg-[#fdfcfb]">
+    <AppContext.Provider value={contextValue}>
+    <div className="min-h-screen md:h-screen md:overflow-hidden flex flex-col md:flex-row font-sans bg-[#fdfcfb]">
       <MasteryModal />
       
       {/* Mobile Header */}
@@ -1049,13 +1220,13 @@ export default function App() {
           <Book className="text-brand-primary w-6 h-6" />
           <span className="font-bold text-brand-dark">Tibetan Mastery</span>
         </div>
-        <button onClick={() => setIsSidebarOpen(true)} className="p-2">
+        <button onClick={() => setIsSidebarOpen(true)} className="p-2" aria-label="Open navigation menu">
           <Menu className="w-6 h-6 text-brand-primary" />
         </button>
       </div>
 
       {/* Sidebar */}
-      <AnimatePresence>
+      <AnimatePresence initial={false}>
         {isSidebarOpen && (
           <motion.div
             key="sidebar-backdrop"
@@ -1066,13 +1237,13 @@ export default function App() {
             className="fixed inset-0 bg-brand-dark/20 backdrop-blur-sm z-40 md:hidden"
           />
         )}
-        {(isSidebarOpen || window.innerWidth >= 768) && (
+        {(isSidebarOpen || isDesktop) && (
           <motion.aside
             key="sidebar-panel"
             initial={{ x: -300 }}
             animate={{ x: 0 }}
             exit={{ x: -300 }}
-            className={`fixed inset-0 z-50 w-72 overflow-y-auto bg-white border-r border-orange-50 shadow-xl md:relative md:shadow-none md:h-screen ${!isSidebarOpen && 'hidden md:block'}`}
+            className={`fixed inset-0 z-50 w-72 overflow-y-auto bg-white border-r border-orange-50 shadow-xl md:relative md:shadow-none md:h-full ${isSidebarOpen ? '' : 'hidden md:block'}`}
           >
             <div className="p-6 flex items-center justify-between md:mb-4">
               <div className="flex items-center gap-3">
@@ -1084,7 +1255,7 @@ export default function App() {
                   <p className="text-[10px] uppercase tracking-widest font-bold text-brand-primary mt-1">Grammar · Vol. I</p>
                 </div>
               </div>
-              <button onClick={() => setIsSidebarOpen(false)} className="md:hidden p-2">
+              <button onClick={() => setIsSidebarOpen(false)} className="md:hidden p-2" aria-label="Close navigation menu">
                 <X className="w-6 h-6 text-brand-primary" />
               </button>
             </div>
@@ -1102,6 +1273,7 @@ export default function App() {
                 {navQuery && (
                   <button
                     onClick={() => setNavQuery('')}
+                    aria-label="Clear search"
                     className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-black/5 transition-colors"
                   >
                     <X className="w-3.5 h-3.5 text-brand-dark/40" />
@@ -1322,7 +1494,13 @@ export default function App() {
                         <p className="text-[10px] font-bold text-brand-primary/40 uppercase mb-3 tracking-widest">Vocabulary Examples</p>
                         <div className="flex flex-wrap gap-2">
                           {v.vocab?.map((item, i) => (
-                            <span onClick={() => setSelectedItem({ tib: item.split(' ')[0], eng: item.split(' ')[1] })} key={i} className="text-xs px-3 py-1.5 bg-white rounded-lg border border-brand-primary/10 text-brand-dark cursor-pointer hover:border-brand-primary transition-colors">
+                            <span
+                              onClick={() => {
+                                const [tib, ...gloss] = item.split(' ');
+                                setSelectedItem({ tib, eng: gloss.join(' ').replace(/^\(|\)$/g, '') });
+                              }}
+                              key={i}
+                              className="text-xs px-3 py-1.5 bg-white rounded-lg border border-brand-primary/10 text-brand-dark cursor-pointer hover:border-brand-primary transition-colors">
                               {item}
                             </span>
                           ))}
@@ -1342,6 +1520,9 @@ export default function App() {
                     <div className="absolute inset-0 bg-gradient-to-br from-brand-secondary/10 to-transparent" />
                     <div className="relative tibetan-text text-[8rem] sm:text-[14rem] text-brand-secondary leading-tight py-12 select-none drop-shadow-[0_10px_20px_rgba(0,0,0,0.3)] whitespace-nowrap">
                       {composedSyllable}
+                    </div>
+                    <div className="absolute bottom-4 inset-x-0 text-center text-white/50 text-xs font-black uppercase tracking-[0.3em]">
+                      ≈ "{composedRoman}"
                     </div>
                   </div>
 
@@ -1417,7 +1598,8 @@ export default function App() {
                   <div key={key} className="bg-white p-10 rounded-[2.5rem] border border-orange-50 shadow-sm hover:shadow-md transition-all group">
                     <div className="flex items-center gap-4 mb-8">
                       <div className="w-14 h-14 bg-brand-muted/50 rounded-2xl flex items-center justify-center tibetan-text text-3xl text-brand-primary">
-                        {key === 'wasur' ? 'ྭ' : data.consonants[0].tib.slice(-1)}
+                        {/* Strip the trailing tsek first — .slice(-1) on the raw string returns "་", not the subjoined letter */}
+                        {data.consonants[0].tib.replace(/་/g, '').slice(-1)}
                       </div>
                       <div>
                         <h3 className="text-2xl font-bold text-brand-dark">{data.name}</h3>
@@ -1729,6 +1911,27 @@ export default function App() {
                     </div>
                   </div>
                 ))}
+
+                <div className="bg-white rounded-[3rem] border border-orange-50 shadow-sm overflow-hidden p-1">
+                  <div className="bg-brand-dark/95 backdrop-blur-md px-10 py-6 text-white flex items-center justify-between rounded-t-[2.8rem]">
+                    <h4 className="text-xl font-black uppercase tracking-tight">Proverbs & Sayings</h4>
+                    <Sparkles className="w-6 h-6 text-brand-secondary/40" />
+                  </div>
+                  <div className="p-10 space-y-12 bg-white rounded-b-[2.8rem]">
+                    {PROVERBS.map((proverb, i) => (
+                      <div key={i} className="group border-l-2 border-orange-50 hover:border-brand-primary pl-8 transition-all">
+                        <div className="mb-4 flex flex-wrap gap-x-3 gap-y-4 items-end">
+                          {proverb.words.map((w, wi) => (
+                            <ReadingWord key={wi} word={w.t} english={w.e} />
+                          ))}
+                        </div>
+                        <div className="text-brand-dark/70 text-base font-medium italic leading-relaxed max-w-3xl">
+                          "{proverb.eng}"
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             </SectionWrapper>
           )}
@@ -1758,7 +1961,7 @@ export default function App() {
                         <motion.div
                           key={idx}
                           whileHover={{ scale: 1.02, y: -2 }}
-                          onClick={() => setSelectedItem({ tib: item.tib, eng: item.eng, vocab: [item.lit || item.skt || item.tone || ''] })}
+                          onClick={() => setSelectedItem({ tib: item.tib, eng: item.eng, vocab: [item.lit ?? item.skt ?? item.tone ?? (item as any).hon].filter(Boolean) })}
                           className="bg-white p-6 rounded-[2rem] border border-orange-50 shadow-sm flex items-center justify-between gap-4 group hover:border-brand-primary/20 transition-all cursor-pointer"
                         >
                           <div className="flex-shrink-0 min-w-[4rem] h-16 px-3 bg-brand-muted/10 rounded-2xl flex items-center justify-center tibetan-text text-3xl text-brand-primary group-hover:bg-brand-primary group-hover:text-white transition-all whitespace-nowrap">
@@ -3051,7 +3254,7 @@ export default function App() {
                  {CH5_NEGATIVE_SUMMARY.map((row, i) => (
                    <div key={i} className="bg-white p-8 rounded-[3rem] border border-orange-50 shadow-sm hover:border-brand-primary/20 transition-all relative overflow-hidden group">
                      <div className="flex justify-between items-start mb-6">
-                       <span className="text-[10px] font-black uppercase tracking-widest text-brand-dark/30 tracking-[0.2em]">{row.p}</span>
+                       <span className="text-[10px] font-black uppercase text-brand-dark/30 tracking-[0.2em]">{row.p}</span>
                        <span className="text-[10px] font-black uppercase tracking-widest text-brand-primary bg-brand-primary/5 px-3 py-1 rounded-full">{row.tense}</span>
                      </div>
                      <div className="flex flex-col items-center py-6 relative z-10">
@@ -3253,7 +3456,7 @@ export default function App() {
                     <div className="p-6 bg-brand-dark text-white rounded-2xl shadow-lg border border-white/5">
                       <p className="text-[10px] font-black uppercase text-white/40 mb-2">Pro Tip</p>
                       <p className="text-xs leading-relaxed text-white/60">
-                        In many syllables verbs, the negator <span className="tibetan-text text-brand-secondary">མ་</span> often comes before the last syllable of the verb.
+                        In multi-syllable verbs, the negator <span className="tibetan-text text-brand-secondary">མ་</span> often comes before the last syllable of the verb.
                       </p>
                     </div>
                   </div>
@@ -4216,7 +4419,7 @@ export default function App() {
                         {ex.act !== "—" ? (
                           <>
                             <span className="tibetan-text text-2xl text-brand-dark block">{ex.act}</span>
-                            <p className="text-sm font-medium italic text-brand-dark/50 italic leading-relaxed">"{ex.act_eng}"</p>
+                            <p className="text-sm font-medium italic text-brand-dark/50 leading-relaxed">"{ex.act_eng}"</p>
                           </>
                         ) : (
                           <p className="text-xs text-brand-dark/20 italic">No specific active form noted</p>
@@ -4250,6 +4453,7 @@ export default function App() {
         </footer>
       </main>
     </div>
+    </AppContext.Provider>
   );
 }
 

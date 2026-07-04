@@ -1,5 +1,6 @@
 @import "tailwindcss";
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;600;800&family=Noto+Sans+Tibetan:wght@400;700&display=swap');
+/* Web fonts are loaded from index.html (<link rel="preconnect"> + stylesheet)
+   so they download in parallel instead of blocking on the CSS import chain. */
 
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
